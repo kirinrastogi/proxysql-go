@@ -1,0 +1,10 @@
+version: '3.4'
+
+services:
+  proxysql:
+    container_name: proxysql
+    build:
+      context: .
+      dockerfile: cnf/Dockerfile
+    ports:
+      - 6032:6032
