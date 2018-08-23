@@ -5,4 +5,5 @@ ADD https://github.com/sysown/proxysql/releases/download/v1.4.4/proxysql_1.4.4-d
 RUN dpkg -i /tmp/proxysql.deb && rm /tmp/proxysql.deb
 COPY cnf/proxysql.cnf /etc/proxysql.cnf
 COPY cnf/my.proxysql.cnf /root/.my.cnf
+EXPOSE 6032
 CMD ["proxysql", "-f", "--idle-threads"]
