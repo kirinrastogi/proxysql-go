@@ -39,7 +39,8 @@ func TestInsertWriterInsertsWriterToContainer(t *testing.T) {
 	}
 	defer SetupAndTeardownProxySQL()()
 	// proxysql is up and running now
-	conn, err := proxysql.New(fmt.Sprintf("remote-admin:password@tcp(localhost:%s)/", proxysqlContainer.GetPort("6032/tcp")))
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := proxysql.New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
 		t.Log("bad dsn")
 		t.Fail()
@@ -61,7 +62,8 @@ func SetupAndTeardownProxySQL() func() {
 	}
 	log.Println("ran proxysql container, exponential backoff now")
 	if err = pool.Retry(func() error {
-		dsn := fmt.Sprintf("remote-admin:password@tcp(localhost:%s)/", proxysqlContainer.GetPort("6032/tcp"))
+		base := "remote-admin:password@tcp(localhost:%s)/"
+		dsn := fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp"))
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			return err
