@@ -251,6 +251,28 @@ func TestAllReturnsAllEntries(t *testing.T) {
 	}
 }
 
+func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	entries, err := conn.All()
+	if err != nil {
+		t.Logf("err while getting all entries")
+		t.Fail()
+	}
+	if len(entries) != 0 {
+		t.Logf("entries is nonzero for empty table: %v", entries)
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
