@@ -42,7 +42,8 @@ func (p *ProxySQL) PersistChanges() error {
 
 func (p *ProxySQL) Writer() (string, error) {
 	var writerHost string
-	err := p.conn.QueryRow("select hostname from mysql_servers where hostgroup_id = 0").Scan(&writerHost)
+	query := fmt.Sprintf("select hostname from mysql_servers where hostgroup_id = %d", p.writerHostgroup)
+	err := p.conn.QueryRow(query).Scan(&writerHost)
 
 	if err == sql.ErrNoRows {
 		return "", err
