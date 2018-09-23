@@ -209,6 +209,48 @@ func TestHostExistsReturnsFalseForNonExistentHost(t *testing.T) {
 	}
 }
 
+func TestAllReturnsAllEntries(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	t.Log("inserting into ProxySQL")
+	insertedEntries := map[string]int{
+		"writer1": 0,
+		"reader1": 1,
+		"reader2": 1,
+	}
+	for hostname, hostgroup := range insertedEntries {
+		query := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', 1000)", hostgroup, hostname)
+		conn.Conn().Exec(query)
+	}
+	entries, err := conn.All()
+	if err != nil {
+		t.Logf("err while getting all entries")
+		t.Fail()
+	}
+	for hostname, hostgroup := range insertedEntries {
+		// if dne, fatalf
+		// else, delete entry from entries
+		returnedHostgroup, ok := entries[hostname]
+		if !ok {
+			t.Logf("entries did not contain key for %s. map: %v", hostname, entries)
+			t.Fail()
+		}
+		if returnedHostgroup != hostgroup {
+			t.Logf("hostgroup returned not equal to hostgroup inserted %d != %d for map %v", returnedHostgroup, hostgroup, entries)
+			t.Fail()
+		}
+		delete(entries, hostname)
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {

@@ -97,9 +97,9 @@ func (p *ProxySQL) All() (map[string]int, error) {
 			return nil, err
 		}
 		entries[hostname] = hostgroup
-		if rows.Err() != nil && rows.Err() != sql.ErrNoRows {
-			return nil, rows.Err()
-		}
+	}
+	if rows.Err() != nil && rows.Err() != sql.ErrNoRows {
+		return nil, rows.Err()
 	}
 	return entries, nil
 }
