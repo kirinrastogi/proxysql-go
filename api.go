@@ -6,7 +6,7 @@ import (
 )
 
 func NewWithDefaultHostgroups(dsn string) (*ProxySQL, error) {
-	conn, err := sql.Open("mysql", dsn)
+	conn, err := open("mysql", dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -14,9 +14,11 @@ func NewWithDefaultHostgroups(dsn string) (*ProxySQL, error) {
 }
 
 func New(dsn string, writerHostgroup int, readerHostgroup int) (*ProxySQL, error) {
-	conn, err := sql.Open("mysql", dsn)
+	conn, err := open("mysql", dsn)
 	if err != nil {
 		return nil, err
 	}
 	return &ProxySQL{dsn, conn, writerHostgroup, readerHostgroup}, nil
 }
+
+var open func(driver string, dsn string) (*sql.DB, error) = sql.Open

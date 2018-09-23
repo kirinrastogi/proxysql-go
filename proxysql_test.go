@@ -2,6 +2,7 @@ package proxysql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/ory/dockertest"
@@ -41,6 +42,30 @@ func TestNewWithDefaultHostgroupsSetsDefaultHostgroups(t *testing.T) {
 	}
 	if conn.writerHostgroup != 0 || conn.readerHostgroup != 1 {
 		t.Log("default hostgroups were not 0 and 1")
+		t.Fail()
+	}
+}
+
+func TestNewErrorsOnSqlOpenError(t *testing.T) {
+	open = func(driver string, dsn string) (*sql.DB, error) {
+		return nil, errors.New("Error creating connection pool")
+	}
+	defer resetOpen()
+	_, err := New("some-dsn", 0, 1)
+	if err == nil {
+		t.Log("New did not propogate err")
+		t.Fail()
+	}
+}
+
+func TestNewWithDefaultHostgroupsErrorsOnSqlOpenError(t *testing.T) {
+	open = func(driver string, dsn string) (*sql.DB, error) {
+		return nil, errors.New("Error creating connection pool")
+	}
+	defer resetOpen()
+	_, err := NewWithDefaultHostgroups("some-dsn")
+	if err == nil {
+		t.Log("New did not propogate err")
 		t.Fail()
 	}
 }
@@ -303,4 +328,8 @@ func SetupProxySQL(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("could not connect to docker: %v", err)
 	}
+}
+
+func resetOpen() {
+	open = sql.Open
 }
