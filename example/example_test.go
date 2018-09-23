@@ -37,7 +37,7 @@ func TestInsertWriterInsertsWriterToContainer(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	defer SetupAndTeardownProxySQL()()
+	defer SetupAndTeardownProxySQL(t)()
 	// proxysql is up and running now
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := proxysql.New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
@@ -53,14 +53,14 @@ func TestInsertWriterInsertsWriterToContainer(t *testing.T) {
 	conn.RemoveHost("some-host")
 }
 
-func SetupAndTeardownProxySQL() func() {
-	log.Println("setting up proxysql container")
+func SetupAndTeardownProxySQL(t *testing.T) func() {
+	t.Log("setting up proxysql container")
 	var err error
 	proxysqlContainer, err = pool.Run("kirinrastogi/proxysql", "latest", []string{})
 	if err != nil {
-		log.Fatalf("could not build and run proxysql, is dockerd running? error: %v", err)
+		t.Fatalf("could not build and run proxysql, is dockerd running? error: %v", err)
 	}
-	log.Println("ran proxysql container, exponential backoff now")
+	t.Log("ran proxysql container, waiting for network connection")
 	if err = pool.Retry(func() error {
 		base := "remote-admin:password@tcp(localhost:%s)/"
 		dsn := fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp"))
@@ -68,15 +68,15 @@ func SetupAndTeardownProxySQL() func() {
 		if err != nil {
 			return err
 		}
-		log.Printf("pinging dsn: %s", dsn)
+		t.Logf("pinging dsn: %s", dsn)
 		return db.Ping()
 	}); err != nil {
-		log.Fatalf("could not connect to docker: %v", err)
+		t.Fatalf("could not connect to docker: %v", err)
 	}
 	return func() {
 		if err = pool.Purge(proxysqlContainer); err != nil {
-			log.Fatalf("could not purge proxysql: %v", err)
+			t.Fatalf("could not purge proxysql: %v", err)
 		}
-		log.Println("purged a proxysql container")
+		t.Log("purged a proxysql container")
 	}
 }
