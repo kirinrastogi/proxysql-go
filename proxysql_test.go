@@ -23,6 +23,28 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestNewWithHostgroupsSetsHostgroups(t *testing.T) {
+	conn, err := New("some-dsn", 33, 86)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conn.writerHostgroup != 33 || conn.readerHostgroup != 86 {
+		t.Logf("hostgroups were not set properly: w: %d, r: %d", conn.writerHostgroup, conn.readerHostgroup)
+		t.Fail()
+	}
+}
+
+func TestNewWithDefaultHostgroupsSetsDefaultHostgroups(t *testing.T) {
+	conn, err := NewWithDefaultHostgroups("some-dsn")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conn.writerHostgroup != 0 || conn.readerHostgroup != 1 {
+		t.Log("default hostgroups were not 0 and 1")
+		t.Fail()
+	}
+}
+
 func TestPingSucceedsOnLiveContainer(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -74,6 +96,28 @@ func TestCloseClosesConnectionToProxySQL(t *testing.T) {
 	conn.Close()
 	if err := conn.Ping(); err == nil {
 		t.Logf("ping succeeded to container with closed connection %s", base)
+		t.Fail()
+	}
+}
+
+func TestWriterErrorsIfThereIsNoWriter(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	writer, err := conn.Writer()
+	if err == nil {
+		t.Log("writer did not error when there were no rows")
+		t.Fail()
+	}
+	if writer != "" {
+		t.Log("writer hostname returned was non empty")
 		t.Fail()
 	}
 }
