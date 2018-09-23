@@ -98,6 +98,9 @@ func TestCloseClosesConnectionToProxySQL(t *testing.T) {
 		t.Logf("ping succeeded to container with closed connection %s", base)
 		t.Fail()
 	}
+	if err := pool.Purge(proxysqlContainer); err != nil {
+		t.Fatalf("could not purge proxysql: %v", err)
+	}
 }
 
 func TestWriterErrorsIfThereIsNoWriter(t *testing.T) {
@@ -174,7 +177,7 @@ func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	SetupProxySQL(t)
+	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
@@ -193,7 +196,7 @@ func TestHostExistsReturnsFalseForNonExistentHost(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	SetupProxySQL(t)
+	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {

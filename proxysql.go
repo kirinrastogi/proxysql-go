@@ -27,9 +27,6 @@ func (p *ProxySQL) Conn() *sql.DB {
 
 func (p *ProxySQL) PersistChanges() error {
 	_, err := p.conn.Exec("save mysql servers to disk")
-	// return err here?
-	// what if load fails but this doesn't?
-	// maybe ping first?
 	if err != nil {
 		return err
 	}
