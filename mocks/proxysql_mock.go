@@ -7,13 +7,28 @@ import (
 
 type ProxySQLMock struct {
 	health                bool
+	writerHostgroup       int
+	readerHostgroup       int
 	mysql_servers         map[string]int
 	runtime_mysql_servers map[string]int
 }
 
-func New() *ProxySQLMock {
+func New(writerHostgroup int, readerHostgroup int) *ProxySQLMock {
 	pm := &ProxySQLMock{
 		health:                true,
+		writerHostgroup:       writerHostgroup,
+		readerHostgroup:       readerHostgroup,
+		mysql_servers:         make(map[string]int),
+		runtime_mysql_servers: make(map[string]int),
+	}
+	return pm
+}
+
+func NewWithDefaultHostgroups() *ProxySQLMock {
+	pm := &ProxySQLMock{
+		health:                true,
+		writerHostgroup:       0,
+		readerHostgroup:       1,
 		mysql_servers:         make(map[string]int),
 		runtime_mysql_servers: make(map[string]int),
 	}
