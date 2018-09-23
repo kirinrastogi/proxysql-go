@@ -40,7 +40,7 @@ func TestInsertWriterInsertsWriterToContainer(t *testing.T) {
 	defer SetupAndTeardownProxySQL()()
 	// proxysql is up and running now
 	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := proxysql.New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := proxysql.New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
 		t.Log("bad dsn")
 		t.Fail()
@@ -58,7 +58,7 @@ func SetupAndTeardownProxySQL() func() {
 	var err error
 	proxysqlContainer, err = pool.Run("kirinrastogi/proxysql", "latest", []string{})
 	if err != nil {
-		log.Fatalf("could not build and run proxysql: %v", err)
+		log.Fatalf("could not build and run proxysql, is dockerd running? error: %v", err)
 	}
 	log.Println("ran proxysql container, exponential backoff now")
 	if err = pool.Retry(func() error {

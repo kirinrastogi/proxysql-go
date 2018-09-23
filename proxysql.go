@@ -7,8 +7,10 @@ import (
 )
 
 type ProxySQL struct {
-	dsn  string
-	conn *sql.DB
+	dsn             string
+	conn            *sql.DB
+	writerHostgroup int
+	readerHostgroup int
 }
 
 func (p *ProxySQL) Ping() error {
@@ -49,11 +51,11 @@ func (p *ProxySQL) Writer() (string, error) {
 }
 
 func (p *ProxySQL) SetWriter(hostname string, maxConnections int) error {
-	_, err := p.conn.Exec("delete from mysql_servers where hostgroup_id = 0")
+	_, err := p.conn.Exec(fmt.Sprintf("delete from mysql_servers where hostgroup_id = %d", p.writerHostgroup))
 	if err != nil {
 		return err
 	}
-	_, err = p.conn.Exec(fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", 0, hostname, maxConnections))
+	_, err = p.conn.Exec(fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.writerHostgroup, hostname, maxConnections))
 	if err != nil {
 		return err
 	}
