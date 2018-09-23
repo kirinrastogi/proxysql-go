@@ -6,34 +6,29 @@ import (
 	"os"
 )
 
+// Define your own interface to use when you write code
+// This example only uses SetWriter, so only that is included
 type ProxySQLConn interface {
-	PersistChanges() error
-	Ping() error
-	Writer() (string, error)
 	SetWriter(string, int) error
-	HostExists(string) (bool, error)
-	AddHost(string, int, int) error
-	RemoveHost(string) error
-	RemoveHostFromHostgroup(string, int) error
-	All() (map[string]int, error)
-	Hostgroup(int) (map[string]int, error)
-	SizeOfHostgroup(int) (int, error)
 }
 
 func main() {
+	// set up your connection
 	conn, err := proxysql.New("remote-admin:password@tcp(localhost:6032)/", 0, 1)
 	if err != nil {
 		fmt.Print(err)
 	}
+	// ensure it is valid
 	if err := conn.Ping(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	// do something
 	fmt.Println("connected successfully to ProxySQL")
-	InsertWriter(conn)
+	InsertWriter(conn, "some-host")
 	conn.RemoveHost("some-host")
 }
 
-func InsertWriter(conn ProxySQLConn) {
-	conn.SetWriter("some-host", 3000)
+func InsertWriter(conn ProxySQLConn, writer string) {
+	conn.SetWriter(writer, 3000)
 }

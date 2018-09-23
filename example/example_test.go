@@ -27,8 +27,9 @@ func TestMain(m *testing.M) {
 
 func TestInsertWriterInsertsWriter(t *testing.T) {
 	mock := proxysql_mock.New()
-	InsertWriter(mock)
-	if w, _ := mock.Writer(); w != "some-host" {
+	writerHostname := "a-host"
+	InsertWriter(mock, writerHostname)
+	if writer, _ := mock.Writer(); writer != writerHostname {
 		t.Fail()
 	}
 }
@@ -45,8 +46,9 @@ func TestInsertWriterInsertsWriterToContainer(t *testing.T) {
 		t.Log("bad dsn")
 		t.Fail()
 	}
-	InsertWriter(conn)
-	if writer, err := conn.Writer(); writer != "some-host" && err != nil {
+	writerHostname := "b-host"
+	InsertWriter(conn, writerHostname)
+	if writer, err := conn.Writer(); writer != writerHostname && err != nil {
 		t.Log("writer not set")
 		t.Fail()
 	}
