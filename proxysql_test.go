@@ -126,6 +126,42 @@ func TestSetWriterSetsTheWriter(t *testing.T) {
 	}
 }
 
+func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	SetupProxySQL(t)
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	t.Log("inserting into ProxySQL")
+	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'readerHost', 1000)")
+	if exists, _ := conn.HostExists("readerHost"); !exists {
+		t.Log("readerHost was inserted but not read")
+		t.Fail()
+	}
+}
+
+func TestHostExistsReturnsFalseForNonExistentHost(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	SetupProxySQL(t)
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	if exists, _ := conn.HostExists("readerHost"); exists {
+		t.Log("readerHost was not inserted but read")
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
