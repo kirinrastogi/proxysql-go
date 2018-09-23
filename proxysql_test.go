@@ -60,6 +60,24 @@ func TestPingFailsOnDeadContainer(t *testing.T) {
 	}
 }
 
+func TestCloseClosesConnectionToProxySQL(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	SetupProxySQL(t)
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	conn.Close()
+	if err := conn.Ping(); err == nil {
+		t.Logf("ping succeeded to container with closed connection %s", base)
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
