@@ -78,6 +78,30 @@ func TestCloseClosesConnectionToProxySQL(t *testing.T) {
 	}
 }
 
+func TestWriterReadsTheWriter(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	t.Log("inserting into ProxySQL")
+	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
+	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (1, 'readerHost', 1000)")
+	writer, err := conn.Writer()
+	if err != nil {
+		t.Fatalf("could not get writer: %v", err)
+	}
+	if writer != "writerHost" {
+		t.Log("writer set was not the writer read")
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
