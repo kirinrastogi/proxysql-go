@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - "1.10.x"
+
+sudo: required
+
+services:
+  - docker
+
+script:
+  - go test -v -cover

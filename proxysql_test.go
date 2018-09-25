@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 var pool *dockertest.Pool
@@ -72,15 +73,11 @@ func TestNewWithDefaultHostgroupsErrorsOnSqlOpenError(t *testing.T) {
 }
 
 func TestPingSucceedsOnLiveContainer(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	if err := conn.Ping(); err != nil {
 		t.Logf("ping failed to live container at %s", base)
@@ -89,15 +86,11 @@ func TestPingSucceedsOnLiveContainer(t *testing.T) {
 }
 
 func TestPingFailsOnDeadContainer(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	SetupProxySQL(t)
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	if err := pool.Purge(proxysqlContainer); err != nil {
 		t.Fatalf("could not purge proxysql: %v", err)
@@ -109,15 +102,11 @@ func TestPingFailsOnDeadContainer(t *testing.T) {
 }
 
 func TestCloseClosesConnectionToProxySQL(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	SetupProxySQL(t)
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	conn.Close()
 	if err := conn.Ping(); err == nil {
@@ -130,15 +119,11 @@ func TestCloseClosesConnectionToProxySQL(t *testing.T) {
 }
 
 func TestWriterErrorsIfThereIsNoWriter(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	writer, err := conn.Writer()
 	if err == nil {
@@ -152,15 +137,11 @@ func TestWriterErrorsIfThereIsNoWriter(t *testing.T) {
 }
 
 func TestWriterReadsTheWriter(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
 	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
@@ -176,15 +157,11 @@ func TestWriterReadsTheWriter(t *testing.T) {
 }
 
 func TestSetWriterSetsTheWriter(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
 	writerHostname := "some-writer"
@@ -200,15 +177,11 @@ func TestSetWriterSetsTheWriter(t *testing.T) {
 }
 
 func TestSetWriterUpdatesExistingWriter(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
 	oldWriterHostname := "old-writer"
@@ -220,13 +193,11 @@ func TestSetWriterUpdatesExistingWriter(t *testing.T) {
 	writerHostname := "some-writer"
 	err = conn.SetWriter(writerHostname, 1000)
 	if err != nil {
-		t.Logf("inserting new writer failed %v", err)
-		t.Fail()
+		t.Fatalf("inserting new writer failed %v", err)
 	}
 	writer, err := conn.Writer()
 	if err != nil {
-		t.Logf("could not get writer: %v", err)
-		t.Fail()
+		t.Fatalf("could not get writer: %v", err)
 	}
 	if writer != writerHostname {
 		t.Logf("writer set was not the writer read, %s != %s", writer, writerHostname)
@@ -235,16 +206,12 @@ func TestSetWriterUpdatesExistingWriter(t *testing.T) {
 }
 
 func TestSetWriterInsertsOnErrNoRows(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	defer resetExec()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 
 	queryType := ""
@@ -257,15 +224,13 @@ func TestSetWriterInsertsOnErrNoRows(t *testing.T) {
 	}
 	writerSet := "new-writer"
 	if err := conn.SetWriter(writerSet, 2000); err != nil {
-		t.Logf("error inserting writer: %v", err)
-		t.Fail()
+		t.Fatalf("error inserting writer: %v", err)
 	}
 	// assert queryType is "insert"
 	// assert Writer() is "new-writer"
 	writer, err := conn.Writer()
 	if err != nil {
-		t.Logf("error getting writer %v", err)
-		t.Fail()
+		t.Fatalf("error getting writer %v", err)
 	}
 	if writer != writerSet {
 		t.Logf("got writer different from set writer %s != %s", writer, writerSet)
@@ -279,16 +244,12 @@ func TestSetWriterInsertsOnErrNoRows(t *testing.T) {
 }
 
 func TestSetWriterErrorsOnInsertionError(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	defer resetExec()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
 		return nil, errors.New("could not insert")
@@ -302,16 +263,12 @@ func TestSetWriterErrorsOnInsertionError(t *testing.T) {
 }
 
 func TestSetWriterErrorsOnUpdateError(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	defer resetExec()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 
 	queryType := ""
@@ -336,15 +293,11 @@ func TestSetWriterErrorsOnUpdateError(t *testing.T) {
 }
 
 func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
 	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'readerHost', 1000)")
@@ -355,15 +308,11 @@ func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
 }
 
 func TestHostExistsReturnsFalseForNonExistentHost(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	if exists, _ := conn.HostExists("readerHost"); exists {
 		t.Log("readerHost was not inserted but read")
@@ -372,15 +321,11 @@ func TestHostExistsReturnsFalseForNonExistentHost(t *testing.T) {
 }
 
 func TestAllReturnsAllEntries(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
 	insertedEntries := map[string]int{
@@ -394,8 +339,7 @@ func TestAllReturnsAllEntries(t *testing.T) {
 	}
 	entries, err := conn.All()
 	if err != nil {
-		t.Logf("err while getting all entries")
-		t.Fail()
+		t.Fatal("err while getting all entries")
 	}
 	for hostname, hostgroup := range insertedEntries {
 		// if dne, fatalf
@@ -414,20 +358,15 @@ func TestAllReturnsAllEntries(t *testing.T) {
 }
 
 func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
-		t.Log("bad dsn")
-		t.Fail()
+		t.Fatal("bad dsn")
 	}
 	entries, err := conn.All()
 	if err != nil {
-		t.Logf("err while getting all entries")
-		t.Fail()
+		t.Fatal("err while getting all entries")
 	}
 	if len(entries) != 0 {
 		t.Logf("entries is nonzero for empty table: %v", entries)
@@ -446,6 +385,9 @@ func SetupAndTeardownProxySQL(t *testing.T) func() {
 }
 
 func SetupProxySQL(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	t.Log("setting up proxysql container")
 	var err error
 	proxysqlContainer, err = pool.Run("kirinrastogi/proxysql", "latest", []string{})
@@ -453,6 +395,7 @@ func SetupProxySQL(t *testing.T) {
 		t.Fatalf("could not build and run proxysql, is dockerd running? error: %v", err)
 	}
 	t.Log("ran proxysql container, waiting for network connection")
+	time.Sleep(600 * time.Millisecond)
 	if err = pool.Retry(func() error {
 		base := "remote-admin:password@tcp(localhost:%s)/"
 		dsn := fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp"))
