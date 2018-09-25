@@ -374,6 +374,23 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 	}
 }
 
+func TestAddHostAddsAHost(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost("some-host", 3, 1000)
+	var hostname string
+	var hostgroup int
+	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
+	if hostname != "some-host" || hostgroup != 3 {
+		t.Logf("hostname or hostgroup read were not the ones in AddHost %s, %d", hostname, hostgroup)
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
