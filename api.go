@@ -21,4 +21,4 @@ func New(dsn string, writerHostgroup int, readerHostgroup int) (*ProxySQL, error
 	return &ProxySQL{dsn, conn, writerHostgroup, readerHostgroup}, nil
 }
 
-var open func(driver string, dsn string) (*sql.DB, error) = sql.Open
+var open func(string, string) (*sql.DB, error) = sql.Open
