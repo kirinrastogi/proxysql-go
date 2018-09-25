@@ -39,8 +39,8 @@ func (p *ProxySQL) PersistChanges() error {
 
 func (p *ProxySQL) Writer() (string, error) {
 	var writerHost string
-	query := fmt.Sprintf("select hostname from mysql_servers where hostgroup_id = %d", p.writerHostgroup)
-	err := p.conn.QueryRow(query).Scan(&writerHost)
+	readQuery := fmt.Sprintf("select hostname from mysql_servers where hostgroup_id = %d", p.writerHostgroup)
+	err := p.conn.QueryRow(readQuery).Scan(&writerHost)
 
 	if err == sql.ErrNoRows {
 		return "", err
@@ -49,7 +49,7 @@ func (p *ProxySQL) Writer() (string, error) {
 }
 
 func (p *ProxySQL) SetWriter(hostname string, maxConnections int) error {
-	writer, err := preflight(p)
+	writer, err := p.Writer()
 	if err == sql.ErrNoRows && writer == "" {
 		// if there is no writer, insert
 		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.writerHostgroup, hostname, maxConnections)
@@ -91,23 +91,22 @@ func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error
 
 func (p *ProxySQL) All() (map[string]int, error) {
 	entries := make(map[string]int)
-	rows, err := p.conn.Query("select hostname, hostgroup_id from mysql_servers")
+	rows, err := query(p, "select hostname, hostgroup_id from mysql_servers")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		// scan multiple values?
 		var hostname string
 		var hostgroup int
-		err := rows.Scan(&hostname, &hostgroup)
+		err := scan(rows, &hostname, &hostgroup)
 		if err != nil {
 			return nil, err
 		}
 		entries[hostname] = hostgroup
 	}
-	if rows.Err() != nil && rows.Err() != sql.ErrNoRows {
-		return nil, rows.Err()
+	if rowsErr(rows) != nil && rowsErr(rows) != sql.ErrNoRows {
+		return nil, rowsErr(rows)
 	}
 	return entries, nil
 }
@@ -145,10 +144,19 @@ func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	return numInstances, nil
 }
 
-var preflight = func(p *ProxySQL) (string, error) {
-	return p.Writer()
+// wrappers around standard sql funcs for testing
+var exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+	return p.conn.Exec(queryString)
 }
 
-var exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
-	return p.conn.Exec(query)
+var query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
+	return p.conn.Query(queryString)
+}
+
+var scan = func(rs *sql.Rows, dest ...interface{}) error {
+	return rs.Scan(dest...)
+}
+
+var rowsErr = func(rs *sql.Rows) error {
+	return rs.Err()
 }
