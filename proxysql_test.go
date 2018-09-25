@@ -374,6 +374,81 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 	}
 }
 
+func TestAddHostAddsAHost(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost("some-host", 3, 1000)
+	var hostname string
+	var hostgroup int
+	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
+	if hostname != "some-host" || hostgroup != 3 {
+		t.Logf("hostname or hostgroup read were not the ones in AddHost %s, %d", hostname, hostgroup)
+		t.Fail()
+	}
+}
+
+func TestRemoveHostRemovesAHost(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+
+	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'some-host', 1000)")
+	if err != nil {
+		t.Fatalf("err setting up test: %v", err)
+	}
+
+	if err := conn.RemoveHost("some-host"); err != nil {
+		t.Fatal("err removing host %v", err)
+	}
+
+	exists, err := conn.HostExists("some-host")
+	if err != nil {
+		t.Fatalf("err checking existence of host: %v", err)
+	}
+
+	if exists {
+		t.Log("host still existed after removal")
+		t.Fail()
+	}
+}
+
+func TestRemoveHostFromHostgroupRemovesAHostFromSpecificHostgroup(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+
+	for i := 0; i < 3; i++ {
+		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, 'some-host', 1000)", i)
+		_, err = conn.Conn().Exec(insertQuery)
+		if err != nil {
+			t.Fatalf("err setting up test: %v", err)
+		}
+	}
+
+	if err := conn.RemoveHostFromHostgroup("some-host", 1); err != nil {
+		t.Fatal("err removing host %v", err)
+	}
+
+	exists, err := conn.HostExists("some-host")
+	if err != nil {
+		t.Fatalf("err checking existence of host: %v", err)
+	}
+	if !exists {
+		t.Log("all entries for host were deleted")
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
