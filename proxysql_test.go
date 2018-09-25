@@ -217,10 +217,10 @@ func TestSetWriterInsertsOnErrNoRows(t *testing.T) {
 	queryType := ""
 	fullQuery := ""
 	// when SetWriter execs, make it return the first word in query
-	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
-		queryType = strings.Split(query, " ")[0]
-		fullQuery = query
-		return p.conn.Exec(query)
+	exec = func(p *ProxySQL, queryString string, args ...interface{}) (sql.Result, error) {
+		queryType = strings.Split(queryString, " ")[0]
+		fullQuery = queryString
+		return p.conn.Exec(queryString)
 	}
 	writerSet := "new-writer"
 	if err := conn.SetWriter(writerSet, 2000); err != nil {
@@ -251,7 +251,7 @@ func TestSetWriterErrorsOnInsertionError(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
+	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
 		return nil, errors.New("could not insert")
 	}
 	writerSet := "new-writer"
@@ -274,9 +274,9 @@ func TestSetWriterErrorsOnUpdateError(t *testing.T) {
 	queryType := ""
 	fullQuery := ""
 	// when SetWriter execs to update, make it return the first word in query
-	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
-		queryType = strings.Split(query, " ")[0]
-		fullQuery = query
+	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		queryType = strings.Split(queryString, " ")[0]
+		fullQuery = queryString
 		return nil, errors.New("could not update writer")
 	}
 	oldWriter := "old-writer"
@@ -334,8 +334,8 @@ func TestAllReturnsAllEntries(t *testing.T) {
 		"reader2": 1,
 	}
 	for hostname, hostgroup := range insertedEntries {
-		query := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', 1000)", hostgroup, hostname)
-		conn.Conn().Exec(query)
+		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', 1000)", hostgroup, hostname)
+		conn.Conn().Exec(insertQuery)
 	}
 	entries, err := conn.All()
 	if err != nil {
@@ -490,7 +490,7 @@ func resetOpen() {
 }
 
 func resetExec() {
-	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
-		return p.conn.Exec(query)
+	exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		return p.conn.Exec(queryString)
 	}
 }

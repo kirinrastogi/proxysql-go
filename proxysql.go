@@ -39,8 +39,8 @@ func (p *ProxySQL) PersistChanges() error {
 
 func (p *ProxySQL) Writer() (string, error) {
 	var writerHost string
-	query := fmt.Sprintf("select hostname from mysql_servers where hostgroup_id = %d", p.writerHostgroup)
-	err := p.conn.QueryRow(query).Scan(&writerHost)
+	readQuery := fmt.Sprintf("select hostname from mysql_servers where hostgroup_id = %d", p.writerHostgroup)
+	err := p.conn.QueryRow(readQuery).Scan(&writerHost)
 
 	if err == sql.ErrNoRows {
 		return "", err
@@ -91,13 +91,12 @@ func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error
 
 func (p *ProxySQL) All() (map[string]int, error) {
 	entries := make(map[string]int)
-	rows, err := p.conn.Query("select hostname, hostgroup_id from mysql_servers")
+	rows, err := query(p, "select hostname, hostgroup_id from mysql_servers")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		// scan multiple values?
 		var hostname string
 		var hostgroup int
 		err := rows.Scan(&hostname, &hostgroup)
@@ -149,6 +148,14 @@ var preflight = func(p *ProxySQL) (string, error) {
 	return p.Writer()
 }
 
-var exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
-	return p.conn.Exec(query)
+var exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+	return p.conn.Exec(queryString)
+}
+
+var query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
+	return p.conn.Query(queryString)
+}
+
+var scan = func(rs *sql.Rows, dest ...interface{}) error {
+	return rs.Scan(dest)
 }
