@@ -271,12 +271,8 @@ func TestSetWriterErrorsOnUpdateError(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	queryType := ""
-	fullQuery := ""
 	// when SetWriter execs to update, make it return the first word in query
 	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
-		queryType = strings.Split(queryString, " ")[0]
-		fullQuery = queryString
 		return nil, errors.New("could not update writer")
 	}
 	oldWriter := "old-writer"
@@ -339,7 +335,7 @@ func TestAllReturnsAllEntries(t *testing.T) {
 	}
 	entries, err := conn.All()
 	if err != nil {
-		t.Fatal("err while getting all entries")
+		t.Fatalf("err while getting all entries: %v", err)
 	}
 	for hostname, hostgroup := range insertedEntries {
 		// if dne, fatalf
@@ -370,6 +366,72 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Logf("entries is nonzero for empty table: %v", entries)
+		t.Fail()
+	}
+}
+
+func TestAllErrorsOnQueryError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetQuery()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	query = func(*ProxySQL, string, ...interface{}) (*sql.Rows, error) {
+		return nil, errors.New("error querying proxysql")
+	}
+	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	entries, err := conn.All()
+	if entries != nil || err == nil {
+		t.Logf("entries or err was not nil: %v, %v", entries, err)
+		t.Fail()
+	}
+}
+
+func TestAllErrorsOnScanError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetScan()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	scan = func(_ *sql.Rows, dest ...interface{}) error {
+		return fmt.Errorf("error scanning values: %v", dest...)
+	}
+	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	entries, err := conn.All()
+	if entries != nil || err == nil {
+		t.Logf("entries or err was not nil: %v, %v", entries, err)
+		t.Fail()
+	}
+}
+
+func TestAllErrorsOnRowsError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetRowsErr()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	rowsErr = func(_ *sql.Rows) error {
+		return errors.New("error reading rows")
+	}
+	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	entries, err := conn.All()
+	if entries != nil || err == nil {
+		t.Logf("entries or err was not nil: %v, %v", entries, err)
 		t.Fail()
 	}
 }
@@ -405,7 +467,7 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 	}
 
 	if err := conn.RemoveHost("some-host"); err != nil {
-		t.Fatal("err removing host %v", err)
+		t.Fatalf("err removing host %v", err)
 	}
 
 	exists, err := conn.HostExists("some-host")
@@ -436,7 +498,7 @@ func TestRemoveHostFromHostgroupRemovesAHostFromSpecificHostgroup(t *testing.T) 
 	}
 
 	if err := conn.RemoveHostFromHostgroup("some-host", 1); err != nil {
-		t.Fatal("err removing host %v", err)
+		t.Fatalf("err removing host %v", err)
 	}
 
 	exists, err := conn.HostExists("some-host")
@@ -492,5 +554,23 @@ func resetOpen() {
 func resetExec() {
 	exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
 		return p.conn.Exec(queryString)
+	}
+}
+
+func resetQuery() {
+	query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
+		return p.conn.Query(queryString)
+	}
+}
+
+func resetScan() {
+	scan = func(rs *sql.Rows, dest ...interface{}) error {
+		return rs.Scan(dest...)
+	}
+}
+
+func resetRowsErr() {
+	rowsErr = func(rs *sql.Rows) error {
+		return rs.Err()
 	}
 }

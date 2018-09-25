@@ -49,7 +49,7 @@ func (p *ProxySQL) Writer() (string, error) {
 }
 
 func (p *ProxySQL) SetWriter(hostname string, maxConnections int) error {
-	writer, err := preflight(p)
+	writer, err := p.Writer()
 	if err == sql.ErrNoRows && writer == "" {
 		// if there is no writer, insert
 		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.writerHostgroup, hostname, maxConnections)
@@ -99,14 +99,14 @@ func (p *ProxySQL) All() (map[string]int, error) {
 	for rows.Next() {
 		var hostname string
 		var hostgroup int
-		err := rows.Scan(&hostname, &hostgroup)
+		err := scan(rows, &hostname, &hostgroup)
 		if err != nil {
 			return nil, err
 		}
 		entries[hostname] = hostgroup
 	}
-	if rows.Err() != nil && rows.Err() != sql.ErrNoRows {
-		return nil, rows.Err()
+	if rowsErr(rows) != nil && rowsErr(rows) != sql.ErrNoRows {
+		return nil, rowsErr(rows)
 	}
 	return entries, nil
 }
@@ -144,10 +144,7 @@ func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	return numInstances, nil
 }
 
-var preflight = func(p *ProxySQL) (string, error) {
-	return p.Writer()
-}
-
+// wrappers around standard sql funcs for testing
 var exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
 	return p.conn.Exec(queryString)
 }
@@ -157,5 +154,9 @@ var query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, 
 }
 
 var scan = func(rs *sql.Rows, dest ...interface{}) error {
-	return rs.Scan(dest)
+	return rs.Scan(dest...)
+}
+
+var rowsErr = func(rs *sql.Rows) error {
+	return rs.Err()
 }
