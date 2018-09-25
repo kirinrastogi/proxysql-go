@@ -8,6 +8,7 @@ import (
 	"github.com/ory/dockertest"
 	"log"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -198,6 +199,142 @@ func TestSetWriterSetsTheWriter(t *testing.T) {
 	}
 }
 
+func TestSetWriterUpdatesExistingWriter(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	t.Log("inserting into ProxySQL")
+	oldWriterHostname := "old-writer"
+	err = conn.SetWriter(oldWriterHostname, 1000)
+	if err != nil {
+		t.Logf("inserting old writer failed %v", err)
+		t.Fail()
+	}
+	writerHostname := "some-writer"
+	err = conn.SetWriter(writerHostname, 1000)
+	if err != nil {
+		t.Logf("inserting new writer failed %v", err)
+		t.Fail()
+	}
+	writer, err := conn.Writer()
+	if err != nil {
+		t.Logf("could not get writer: %v", err)
+		t.Fail()
+	}
+	if writer != writerHostname {
+		t.Logf("writer set was not the writer read, %s != %s", writer, writerHostname)
+		t.Fail()
+	}
+}
+
+func TestSetWriterInsertsOnErrNoRows(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+
+	queryType := ""
+	fullQuery := ""
+	// when SetWriter execs, make it return the first word in query
+	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
+		queryType = strings.Split(query, " ")[0]
+		fullQuery = query
+		return p.conn.Exec(query)
+	}
+	writerSet := "new-writer"
+	if err := conn.SetWriter(writerSet, 2000); err != nil {
+		t.Logf("error inserting writer: %v", err)
+		t.Fail()
+	}
+	// assert queryType is "insert"
+	// assert Writer() is "new-writer"
+	writer, err := conn.Writer()
+	if err != nil {
+		t.Logf("error getting writer %v", err)
+		t.Fail()
+	}
+	if writer != writerSet {
+		t.Logf("got writer different from set writer %s != %s", writer, writerSet)
+		t.Fail()
+	}
+
+	if queryType != "insert" {
+		t.Logf("SetWriter did not insert to ProxySQL, instead it ran: \n%s", fullQuery)
+		t.Fail()
+	}
+}
+
+func TestSetWriterErrorsOnInsertionError(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
+		return nil, errors.New("could not insert")
+	}
+	writerSet := "new-writer"
+	err = conn.SetWriter(writerSet, 2000)
+	if err == nil {
+		t.Log("SetWriter did not error on exec insertion error")
+		t.Fail()
+	}
+}
+
+func TestSetWriterErrorsOnUpdateError(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+
+	queryType := ""
+	fullQuery := ""
+	// when SetWriter execs to update, make it return the first word in query
+	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
+		queryType = strings.Split(query, " ")[0]
+		fullQuery = query
+		return nil, errors.New("could not update writer")
+	}
+	oldWriter := "old-writer"
+	setupQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, '%s', 1000)", oldWriter)
+	_, err = conn.conn.Exec(setupQuery)
+	if err != nil {
+		t.Fatalf("err setting writer in setup %s, err: %v", oldWriter, err)
+	}
+	writerSet := "new-writer"
+	if err := conn.SetWriter(writerSet, 2000); err == nil {
+		t.Log("setwriter did not error on error updating writer")
+		t.Fail()
+	}
+}
+
 func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -332,4 +469,10 @@ func SetupProxySQL(t *testing.T) {
 
 func resetOpen() {
 	open = sql.Open
+}
+
+func resetExec() {
+	exec = func(p *ProxySQL, query string, args ...interface{}) (sql.Result, error) {
+		return p.conn.Exec(query)
+	}
 }
