@@ -12,4 +12,4 @@ script:
   - go test -v -cover -race -coverprofile=coverage.txt -covermode=atomic
 
 after_success:
-  - ./script/codecov.sh
+  - bash <(curl -s https://codecov.io/bash)
