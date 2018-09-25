@@ -9,4 +9,4 @@ services:
   - docker
 
 script:
-  - go test
+  - go test -v -cover
