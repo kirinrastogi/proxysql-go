@@ -511,6 +511,50 @@ func TestRemoveHostFromHostgroupRemovesAHostFromSpecificHostgroup(t *testing.T) 
 	}
 }
 
+func TestPersistChangesErrorsOnSave(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	saveErr := errors.New("could not save servers to disk")
+	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		if queryString == "save mysql servers to disk" {
+			return nil, saveErr
+		}
+		return nil, nil
+	}
+	err = conn.PersistChanges()
+	if err != saveErr {
+		t.Log("persist changes did not error on save failure")
+		t.Fail()
+	}
+}
+
+func TestPersistChangesErrorsOnLoad(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	loadErr := errors.New("error saving servers to disk")
+	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		if queryString == "load mysql servers to runtime" {
+			return nil, loadErr
+		}
+		return nil, nil
+	}
+	err = conn.PersistChanges()
+	if err != loadErr {
+		t.Log("persist changes did not error on load failure")
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {

@@ -26,11 +26,11 @@ func (p *ProxySQL) Conn() *sql.DB {
 }
 
 func (p *ProxySQL) PersistChanges() error {
-	_, err := p.conn.Exec("save mysql servers to disk")
+	_, err := exec(p, "save mysql servers to disk")
 	if err != nil {
 		return err
 	}
-	_, err = p.conn.Exec("load mysql servers to runtime")
+	_, err = exec(p, "load mysql servers to runtime")
 	if err != nil {
 		return err
 	}
