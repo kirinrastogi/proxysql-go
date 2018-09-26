@@ -99,7 +99,7 @@ func (p *ProxySQL) All() (map[string]int, error) {
 	for rows.Next() {
 		var hostname string
 		var hostgroup int
-		err := scan(rows, &hostname, &hostgroup)
+		err := scanRows(rows, &hostname, &hostgroup)
 		if err != nil {
 			return nil, err
 		}
@@ -137,9 +137,10 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 
 func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	var numInstances int
-	err := p.conn.QueryRow(fmt.Sprintf("select count(*) from mysql_servers where hostgroup_id = %d", hostgroup)).Scan(&numInstances)
+	countQuery := fmt.Sprintf("select count(*) from mysql_servers where hostgroup_id = %d", hostgroup)
+	err := scanRow(p.conn.QueryRow(countQuery), &numInstances)
 	if err != nil {
-		return -1, nil
+		return -1, err
 	}
 	return numInstances, nil
 }
@@ -153,7 +154,11 @@ var query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, 
 	return p.conn.Query(queryString)
 }
 
-var scan = func(rs *sql.Rows, dest ...interface{}) error {
+var scanRows = func(rs *sql.Rows, dest ...interface{}) error {
+	return rs.Scan(dest...)
+}
+
+var scanRow = func(rs *sql.Row, dest ...interface{}) error {
 	return rs.Scan(dest...)
 }
 

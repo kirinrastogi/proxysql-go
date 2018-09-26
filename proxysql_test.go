@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/ory/dockertest"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -22,6 +23,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Could not reach docker daemon: %v", err)
 	}
+	rand.Seed(time.Now().UTC().UnixNano())
 	code := m.Run()
 	os.Exit(code)
 }
@@ -394,13 +396,13 @@ func TestAllErrorsOnQueryError(t *testing.T) {
 
 func TestAllErrorsOnScanError(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
-	defer resetScan()
+	defer resetScanRows()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	scan = func(_ *sql.Rows, dest ...interface{}) error {
+	scanRows = func(_ *sql.Rows, dest ...interface{}) error {
 		return fmt.Errorf("error scanning values: %v", dest...)
 	}
 	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
@@ -555,6 +557,58 @@ func TestPersistChangesErrorsOnLoad(t *testing.T) {
 	}
 }
 
+func TestSizeOfHostgroupReturnsSize(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	t.Log("inserting into ProxySQL")
+	entryCount := rand.Intn(10)
+	for i := 0; i < entryCount; i++ {
+		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (4, 'host-num%d', 1000)", i)
+		_, err = conn.Conn().Exec(insertQuery)
+		if err != nil {
+			t.Fatalf("err setting up test: %v", err)
+		}
+	}
+	size, err := conn.SizeOfHostgroup(4)
+	if err != nil {
+		t.Logf("unexpected err reading hostgroup size: %v", err)
+		t.Fail()
+	}
+
+	if size != entryCount {
+		t.Logf("hostgroup read does not match amount of entries %d != %d", size, entryCount)
+		t.Fail()
+	}
+}
+
+func TestSizeOfHostgroupErrorsOnQueryError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetScanRow()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	queryErr := errors.New("error counting entries")
+	scanRow = func(*sql.Row, ...interface{}) error {
+		return queryErr
+	}
+	size, err := conn.SizeOfHostgroup(1)
+	if err != queryErr {
+		t.Logf("size of hostgroup did not properly error on failed count: %v", err)
+		t.Fail()
+	}
+
+	if size != -1 {
+		t.Logf("size of hostgroup was not returned as -1 in error: %d", size)
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
@@ -607,8 +661,14 @@ func resetQuery() {
 	}
 }
 
-func resetScan() {
-	scan = func(rs *sql.Rows, dest ...interface{}) error {
+func resetScanRows() {
+	scanRows = func(rs *sql.Rows, dest ...interface{}) error {
+		return rs.Scan(dest...)
+	}
+}
+
+func resetScanRow() {
+	scanRow = func(rs *sql.Row, dest ...interface{}) error {
 		return rs.Scan(dest...)
 	}
 }
