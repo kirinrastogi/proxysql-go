@@ -93,7 +93,7 @@ func (p *ProxySQL) AddHost(hostname string, hostgroup int, maxConnections int) e
 }
 
 func (p *ProxySQL) RemoveHost(hostname string) error {
-	_, err := p.conn.Exec(fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
+	_, err := exec(p, fmt.Sprintf("delete from %s where hostname = '%s'", p.table, hostname))
 	return err
 }
 
