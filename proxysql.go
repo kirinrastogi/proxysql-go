@@ -9,6 +9,7 @@ import (
 type ProxySQL struct {
 	dsn             string
 	conn            *sql.DB
+	table           string
 	writerHostgroup int
 	readerHostgroup int
 }
@@ -23,6 +24,18 @@ func (p *ProxySQL) Close() {
 
 func (p *ProxySQL) Conn() *sql.DB {
 	return p.conn
+}
+
+func (p *ProxySQL) SetTable(t string) error {
+	if t == "mysql_servers" || t == "runtime_mysql_servers" {
+		p.table = t
+		return nil
+	}
+	return fmt.Errorf("table %s is not one of mysql_servers, runtime_mysql_servers", t)
+}
+
+func (p *ProxySQL) Table() string {
+	return p.table
 }
 
 func (p *ProxySQL) PersistChanges() error {
