@@ -52,7 +52,7 @@ func (p *ProxySQL) PersistChanges() error {
 
 func (p *ProxySQL) Writer() (string, error) {
 	var writerHost string
-	readQuery := fmt.Sprintf("select hostname from mysql_servers where hostgroup_id = %d", p.writerHostgroup)
+	readQuery := fmt.Sprintf("select hostname from %s where hostgroup_id = %d", p.table, p.writerHostgroup)
 	err := p.conn.QueryRow(readQuery).Scan(&writerHost)
 
 	if err == sql.ErrNoRows {
@@ -65,14 +65,14 @@ func (p *ProxySQL) SetWriter(hostname string, maxConnections int) error {
 	writer, err := p.Writer()
 	if err == sql.ErrNoRows && writer == "" {
 		// if there is no writer, insert
-		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.writerHostgroup, hostname, maxConnections)
+		insertQuery := fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.table, p.writerHostgroup, hostname, maxConnections)
 		_, err = exec(p, insertQuery)
 		if err != nil {
 			return err
 		}
 	} else if err == nil {
 		// writer exists, update
-		updateQuery := fmt.Sprintf("update mysql_servers set hostname = '%s' where hostgroup_id = %d", hostname, p.writerHostgroup)
+		updateQuery := fmt.Sprintf("update %s set hostname = '%s' where hostgroup_id = %d", p.table, hostname, p.writerHostgroup)
 		_, err = exec(p, updateQuery)
 		if err != nil {
 			return err
@@ -82,13 +82,13 @@ func (p *ProxySQL) SetWriter(hostname string, maxConnections int) error {
 }
 
 func (p *ProxySQL) HostExists(hostname string) (bool, error) {
-	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from mysql_servers where hostname = '%s'", hostname))
+	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from %s where hostname = '%s'", p.table, hostname))
 	defer hostRows.Close()
 	return hostRows.Next(), err
 }
 
 func (p *ProxySQL) AddHost(hostname string, hostgroup int, maxConnections int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", hostgroup, hostname, maxConnections))
+	_, err := p.conn.Exec(fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.table, hostgroup, hostname, maxConnections))
 	return err
 }
 
@@ -98,13 +98,14 @@ func (p *ProxySQL) RemoveHost(hostname string) error {
 }
 
 func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("delete from mysql_servers where hostname = '%s' and hostgroup_id = %d", hostname, hostgroup))
+	_, err := p.conn.Exec(fmt.Sprintf("delete from %s where hostname = '%s' and hostgroup_id = %d", p.table, hostname, hostgroup))
 	return err
 }
 
 func (p *ProxySQL) All() (map[string]int, error) {
 	entries := make(map[string]int)
-	rows, err := query(p, "select hostname, hostgroup_id from mysql_servers")
+	allQuery := fmt.Sprintf("select hostname, hostgroup_id from %s", p.table)
+	rows, err := query(p, allQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +127,7 @@ func (p *ProxySQL) All() (map[string]int, error) {
 
 func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	entries := make(map[string]int)
-	rows, err := p.conn.Query(fmt.Sprintf("select hostname, hostgroup_id from mysql_servers where hostgroup_id = %d", hostgroup))
+	rows, err := p.conn.Query(fmt.Sprintf("select hostname, hostgroup_id from %s where hostgroup_id = %d", p.table, hostgroup))
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 
 func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	var numInstances int
-	countQuery := fmt.Sprintf("select count(*) from mysql_servers where hostgroup_id = %d", hostgroup)
+	countQuery := fmt.Sprintf("select count(*) from %s where hostgroup_id = %d", p.table, hostgroup)
 	err := scanRow(p.conn.QueryRow(countQuery), &numInstances)
 	if err != nil {
 		return -1, err
