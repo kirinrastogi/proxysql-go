@@ -652,6 +652,30 @@ func TestSizeOfHostgroupErrorsOnQueryError(t *testing.T) {
 	}
 }
 
+func TestTableUsedIsTheOneSet(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1, "runtime_mysql_servers")
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	var queryBuilt string
+	exec = func(p *ProxySQL, query string, _ ...interface{}) (sql.Result, error) {
+		queryBuilt = query
+		return nil, nil
+	}
+	err = conn.RemoveHost("some-host")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if queryBuilt != "delete from runtime_mysql_servers where hostname = 'some-host'" {
+		t.Logf("query built is not the expected one: %s", queryBuilt)
+		t.Fail()
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
