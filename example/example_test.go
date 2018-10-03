@@ -41,7 +41,7 @@ func TestInsertWriterInsertsWriterToContainer(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	// proxysql is up and running now
 	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := proxysql.New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1)
+	conn, err := proxysql.New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), 0, 1, "mysql_servers")
 	if err != nil {
 		t.Log("bad dsn")
 		t.Fail()
