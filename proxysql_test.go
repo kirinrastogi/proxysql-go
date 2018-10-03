@@ -96,7 +96,7 @@ func TestSetTableSetsTheTable(t *testing.T) {
 	}
 }
 
-func TableGetsTheTable(t *testing.T) {
+func TestTableGetsTheTable(t *testing.T) {
 	expected := "runtime_mysql_servers"
 	conn, err := New("some-dsn", 33, 86, expected)
 	if err != nil {
@@ -104,6 +104,16 @@ func TableGetsTheTable(t *testing.T) {
 	}
 	if conn.Table() != expected {
 		t.Fatalf("Table did not return table that was set: %s", expected)
+	}
+}
+
+func TestSetTableErrorsOnBadTableName(t *testing.T) {
+	conn, err := NewWithDefaults("some-dsn")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conn.SetTable("some table") == nil {
+		t.Fatal("set table did not error with bad table name passed")
 	}
 }
 
