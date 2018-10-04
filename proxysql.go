@@ -127,7 +127,8 @@ func (p *ProxySQL) All() (map[string]int, error) {
 
 func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	entries := make(map[string]int)
-	rows, err := p.conn.Query(fmt.Sprintf("select hostname, hostgroup_id from %s where hostgroup_id = %d", p.table, hostgroup))
+	readQuery := fmt.Sprintf("select hostname, hostgroup_id from %s where hostgroup_id = %d", p.table, hostgroup)
+	rows, err := query(p, readQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -137,14 +138,15 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 			hostname  string
 			hostgroup int
 		)
-		err := rows.Scan(&hostname, &hostgroup)
+		err := scanRows(rows, &hostname, &hostgroup)
+		if err != nil {
+			return nil, err
+		}
+		err = rowsErr(rows)
 		if err != nil {
 			return nil, err
 		}
 		entries[hostname] = hostgroup
-		if rows.Err() != nil && rows.Err() != sql.ErrNoRows {
-			return nil, rows.Err()
-		}
 	}
 	return entries, nil
 }
