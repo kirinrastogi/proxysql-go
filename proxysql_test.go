@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -704,26 +705,11 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !hostgroupsEqual(entries, runtime_servers) {
+	if !reflect.DeepEqual(entries, runtime_servers) {
 		t.Log("changes were not persisted from mysql_servers to runtime_mysql_servers")
 		t.Logf("table %v != %v", entries, runtime_servers)
 		t.Fail()
 	}
-}
-
-func hostgroupsEqual(map1 map[string]int, map2 map[string]int) bool {
-	for k, v := range map1 {
-		val, ok := map2[k]
-		if !ok {
-			return false
-		}
-		if val != v {
-			return false
-		}
-		delete(map2, k)
-		delete(map1, k)
-	}
-	return len(map2) == 0 && len(map1) == 0
 }
 
 func SetupAndTeardownProxySQL(t *testing.T) func() {
