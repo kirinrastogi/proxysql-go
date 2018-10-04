@@ -676,6 +676,56 @@ func TestTableUsedIsTheOneSet(t *testing.T) {
 	}
 }
 
+func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	containerAddr := fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp"))
+	conn, err := NewWithDefaults(containerAddr)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	// make entries map compare to runtime_servers.All()
+	entries := map[string]int{
+		"reader1": 1,
+		"reader2": 1,
+		"writer":  0,
+	}
+	t.Log("inserting into ProxySQL")
+	for hostname, hostgroup := range entries {
+		conn.AddHost(hostname, hostgroup, 1000)
+	}
+	err = conn.PersistChanges()
+	if err != nil {
+		t.Fatalf("could not persist changes: %v", err)
+	}
+	runtime_conn, err := New(containerAddr, 0, 1, "runtime_mysql_servers")
+	runtime_servers, err := runtime_conn.All()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !hostgroupsEqual(entries, runtime_servers) {
+		t.Log("changes were not persisted from mysql_servers to runtime_mysql_servers")
+		t.Logf("table %v != %v", entries, runtime_servers)
+		t.Fail()
+	}
+}
+
+func hostgroupsEqual(map1 map[string]int, map2 map[string]int) bool {
+	for k, v := range map1 {
+		val, ok := map2[k]
+		if !ok {
+			return false
+		}
+		if val != v {
+			return false
+		}
+		delete(map2, k)
+		delete(map1, k)
+	}
+	return len(map2) == 0 && len(map1) == 0
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {
