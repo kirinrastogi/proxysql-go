@@ -14,7 +14,7 @@ type ProxySQLConn interface {
 
 func main() {
 	// set up your connection
-	conn, err := proxysql.New("remote-admin:password@tcp(localhost:6032)/", 0, 1, "mysql_servers")
+	conn, err := proxysql.New("remote-admin:password@tcp(localhost:6032)/", proxysql.DefaultTable("mysql_servers"))
 	if err != nil {
 		fmt.Print(err)
 	}
