@@ -7,9 +7,9 @@ import (
 )
 
 type ProxySQL struct {
-	dsn             string
-	conn            *sql.DB
-	defaultTable    string
+	dsn          string
+	conn         *sql.DB
+	defaultTable string
 }
 
 func (p *ProxySQL) Ping() error {

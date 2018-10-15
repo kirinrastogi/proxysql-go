@@ -1,5 +1,11 @@
 package main
 
+import "testing"
+
+func TestAdd(t *testing.T) {
+}
+
+/*
 import (
 	"database/sql"
 	"fmt"
@@ -82,3 +88,4 @@ func SetupAndTeardownProxySQL(t *testing.T) func() {
 		t.Log("purged a proxysql container")
 	}
 }
+*/
