@@ -22,10 +22,7 @@ func init() {
 }
 
 func validateTableOpts(opts *queryOpts) error {
-	if opts.table != "mysql_servers" && opts.table != "runtime_mysql_servers" {
-		return ErrConfigBadTable
-	}
-	return nil
+	return validateTable(opts.table)
 }
 
 func validateTable(t string) error {
