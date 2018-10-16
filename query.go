@@ -1,32 +1,28 @@
 package proxysql
 
-import (
-	"fmt"
-)
-
 type queryOpts struct {
 	table     string
 	hostgroup int
 	port      int
 }
 
-type qOpts func(*queryOpts)
+type qOpts func(*queryOpts) *queryOpts
 
 func Hostgroup(h int) qOpts {
-	return func(opts *queryOpts) {
-		opts.Hostgroup(h)
+	return func(opts *queryOpts) *queryOpts {
+		return opts.Hostgroup(h)
 	}
 }
 
 func Table(t string) qOpts {
-	return func(opts *queryOpts) {
-		opts.Table(t)
+	return func(opts *queryOpts) *queryOpts {
+		return opts.Table(t)
 	}
 }
 
 func Port(p int) qOpts {
-	return func(opts *queryOpts) {
-		opts.Port(p)
+	return func(opts *queryOpts) *queryOpts {
+		return opts.Port(p)
 	}
 }
 
@@ -56,7 +52,6 @@ func defaultQueryOpts() *queryOpts {
 func buildAndParseQueryOpts(setters ...qOpts) (*queryOpts, error) {
 	opts := defaultQueryOpts()
 	for _, setter := range setters {
-		fmt.Printf("%v\n", setter)
 		setter(opts)
 	}
 
