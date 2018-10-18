@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 )
@@ -34,8 +33,8 @@ func TestNewSetsDefaultTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if conn.table != "mysql_servers" {
-		t.Logf("Default ProxySQL table was not mysql_servers: %s", conn.table)
+	if conn.defaultTable != "mysql_servers" {
+		t.Logf("Default ProxySQL table was not mysql_servers: %s", conn.defaultTable)
 		t.Fail()
 	}
 }
@@ -45,7 +44,7 @@ func TestNewWithDefaultTableSetsTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if conn.table != "runtime_mysql_servers" {
+	if conn.defaultTable != "runtime_mysql_servers" {
 		t.Log("default hostgroups were not 0 and 1")
 		t.Fail()
 	}
@@ -86,35 +85,35 @@ func TestNewWithDefaultsErrorsOnSqlOpenError(t *testing.T) {
 	}
 }
 
-func TestSetTableSetsTheTable(t *testing.T) {
+func TestSetDefaultTableSetsTheTable(t *testing.T) {
 	conn, err := New("some-dsn")
 	if err != nil {
 		t.Fatal(err)
 	}
 	expected := "runtime_mysql_servers"
-	conn.SetTable(expected)
-	if conn.table != expected {
+	conn.SetDefaultTable(expected)
+	if conn.defaultTable != expected {
 		t.Fatalf("table was not set correctly to %s", expected)
 	}
 }
 
-func TestTableGetsTheTable(t *testing.T) {
+func TestDefaultTableGetsTheDefaultTable(t *testing.T) {
 	expected := "runtime_mysql_servers"
 	conn, err := New("some-dsn", DefaultTable(expected))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if conn.Table() != expected {
+	if conn.DefaultTable() != expected {
 		t.Fatalf("Table did not return table that was set: %s", expected)
 	}
 }
 
-func TestSetTableErrorsOnBadTableName(t *testing.T) {
+func TestSetDefaultTableErrorsOnBadTableName(t *testing.T) {
 	conn, err := New("some-dsn")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if conn.SetTable("some table") == nil {
+	if conn.SetDefaultTable("some table") == nil {
 		t.Fatal("set table did not error with bad table name passed")
 	}
 }
@@ -165,176 +164,6 @@ func TestCloseClosesConnectionToProxySQL(t *testing.T) {
 	}
 }
 
-func TestWriterErrorsIfThereIsNoWriter(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	writer, err := conn.Writer()
-	if err == nil {
-		t.Log("writer did not error when there were no rows")
-		t.Fail()
-	}
-	if writer != "" {
-		t.Log("writer hostname returned was non empty")
-		t.Fail()
-	}
-}
-
-func TestWriterReadsTheWriter(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	t.Log("inserting into ProxySQL")
-	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
-	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (1, 'readerHost', 1000)")
-	writer, err := conn.Writer()
-	if err != nil {
-		t.Fatalf("could not get writer: %v", err)
-	}
-	if writer != "writerHost" {
-		t.Log("writer set was not the writer read")
-		t.Fail()
-	}
-}
-
-func TestSetWriterSetsTheWriter(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	t.Log("inserting into ProxySQL")
-	writerHostname := "some-writer"
-	err = conn.SetWriter(writerHostname, 1000)
-	writer, err := conn.Writer()
-	if err != nil {
-		t.Fatalf("could not get writer: %v", err)
-	}
-	if writer != writerHostname {
-		t.Log("writer set was not the writer read")
-		t.Fail()
-	}
-}
-
-func TestSetWriterUpdatesExistingWriter(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	t.Log("inserting into ProxySQL")
-	oldWriterHostname := "old-writer"
-	err = conn.SetWriter(oldWriterHostname, 1000)
-	if err != nil {
-		t.Logf("inserting old writer failed %v", err)
-		t.Fail()
-	}
-	writerHostname := "some-writer"
-	err = conn.SetWriter(writerHostname, 1000)
-	if err != nil {
-		t.Fatalf("inserting new writer failed %v", err)
-	}
-	writer, err := conn.Writer()
-	if err != nil {
-		t.Fatalf("could not get writer: %v", err)
-	}
-	if writer != writerHostname {
-		t.Logf("writer set was not the writer read, %s != %s", writer, writerHostname)
-		t.Fail()
-	}
-}
-
-func TestSetWriterInsertsOnErrNoRows(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetExec()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-
-	queryType := ""
-	fullQuery := ""
-	// when SetWriter execs, make it return the first word in query
-	exec = func(p *ProxySQL, queryString string, args ...interface{}) (sql.Result, error) {
-		queryType = strings.Split(queryString, " ")[0]
-		fullQuery = queryString
-		return p.conn.Exec(queryString)
-	}
-	writerSet := "new-writer"
-	if err := conn.SetWriter(writerSet, 2000); err != nil {
-		t.Fatalf("error inserting writer: %v", err)
-	}
-	// assert queryType is "insert"
-	// assert Writer() is "new-writer"
-	writer, err := conn.Writer()
-	if err != nil {
-		t.Fatalf("error getting writer %v", err)
-	}
-	if writer != writerSet {
-		t.Logf("got writer different from set writer %s != %s", writer, writerSet)
-		t.Fail()
-	}
-
-	if queryType != "insert" {
-		t.Logf("SetWriter did not insert to ProxySQL, instead it ran: \n%s", fullQuery)
-		t.Fail()
-	}
-}
-
-func TestSetWriterErrorsOnInsertionError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetExec()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
-		return nil, errors.New("could not insert")
-	}
-	writerSet := "new-writer"
-	err = conn.SetWriter(writerSet, 2000)
-	if err == nil {
-		t.Log("SetWriter did not error on exec insertion error")
-		t.Fail()
-	}
-}
-
-func TestSetWriterErrorsOnUpdateError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetExec()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-
-	// when SetWriter execs to update, make it return the first word in query
-	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
-		return nil, errors.New("could not update writer")
-	}
-	oldWriter := "old-writer"
-	setupQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, '%s', 1000)", oldWriter)
-	_, err = conn.conn.Exec(setupQuery)
-	if err != nil {
-		t.Fatalf("err setting writer in setup %s, err: %v", oldWriter, err)
-	}
-	writerSet := "new-writer"
-	if err := conn.SetWriter(writerSet, 2000); err == nil {
-		t.Log("setwriter did not error on error updating writer")
-		t.Fail()
-	}
-}
-
 func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
@@ -344,6 +173,7 @@ func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
 	}
 	t.Log("inserting into ProxySQL")
 	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'readerHost', 1000)")
+	os.Exit(0)
 	if exists, _ := conn.HostExists("readerHost"); !exists {
 		t.Log("readerHost was inserted but not read")
 		t.Fail()

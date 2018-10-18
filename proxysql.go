@@ -7,11 +7,23 @@ import (
 )
 
 type ProxySQL struct {
-	dsn             string
-	conn            *sql.DB
-	table           string
-	writerHostgroup int
-	readerHostgroup int
+	dsn          string
+	conn         *sql.DB
+	defaultTable string
+}
+
+type Host struct {
+	hostgroup_id        int
+	hostname            string
+	port                int
+	status              string
+	weight              int
+	compression         int
+	max_connections     int
+	max_replication_lag int
+	use_ssl             int
+	max_latency_ms      int
+	comment             string
 }
 
 func (p *ProxySQL) Ping() error {
@@ -26,16 +38,16 @@ func (p *ProxySQL) Conn() *sql.DB {
 	return p.conn
 }
 
-func (p *ProxySQL) SetTable(t string) error {
-	if t == "mysql_servers" || t == "runtime_mysql_servers" {
-		p.table = t
-		return nil
+func (p *ProxySQL) SetDefaultTable(t string) error {
+	if err := validateTable(t); err != nil {
+		return fmt.Errorf("table %s is not one of mysql_servers, runtime_mysql_servers", t)
 	}
-	return fmt.Errorf("table %s is not one of mysql_servers, runtime_mysql_servers", t)
+	p.defaultTable = t
+	return nil
 }
 
-func (p *ProxySQL) Table() string {
-	return p.table
+func (p *ProxySQL) DefaultTable() string {
+	return p.defaultTable
 }
 
 func (p *ProxySQL) PersistChanges() error {
@@ -50,69 +62,54 @@ func (p *ProxySQL) PersistChanges() error {
 	return nil
 }
 
-func (p *ProxySQL) Writer() (string, error) {
-	var writerHost string
-	readQuery := fmt.Sprintf("select hostname from %s where hostgroup_id = %d", p.table, p.writerHostgroup)
-	err := p.conn.QueryRow(readQuery).Scan(&writerHost)
-
-	if err == sql.ErrNoRows {
-		return "", err
-	}
-	return writerHost, nil
-}
-
-func (p *ProxySQL) SetWriter(hostname string, maxConnections int) error {
-	writer, err := p.Writer()
-	if err == sql.ErrNoRows && writer == "" {
-		// if there is no writer, insert
-		insertQuery := fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.table, p.writerHostgroup, hostname, maxConnections)
-		_, err = exec(p, insertQuery)
-		if err != nil {
-			return err
-		}
-	} else if err == nil {
-		// writer exists, update
-		updateQuery := fmt.Sprintf("update %s set hostname = '%s' where hostgroup_id = %d", p.table, hostname, p.writerHostgroup)
-		_, err = exec(p, updateQuery)
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
+// HostExists with values specified ...HostOpts
+// only include specified values in query
+// if they want to delete a host with a specific hostname, only use that
 
 func (p *ProxySQL) HostExists(hostname string) (bool, error) {
-	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from %s where hostname = '%s'", p.table, hostname))
+	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from %s where hostname = '%s'", p.defaultTable, hostname))
 	defer hostRows.Close()
 	return hostRows.Next(), err
 }
 
+// Add host with values specified
+// use default Host, and set with ...HostOpts
+
 func (p *ProxySQL) AddHost(hostname string, hostgroup int, maxConnections int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.table, hostgroup, hostname, maxConnections))
+	_, err := p.conn.Exec(fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.defaultTable, hostgroup, hostname, maxConnections))
 	return err
 }
+
+// Remove host with values specified
+// like HostExists
 
 func (p *ProxySQL) RemoveHost(hostname string) error {
-	_, err := exec(p, fmt.Sprintf("delete from %s where hostname = '%s'", p.table, hostname))
+	_, err := exec(p, fmt.Sprintf("delete from %s where hostname = '%s'", p.defaultTable, hostname))
 	return err
 }
 
+// delete this
+
 func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("delete from %s where hostname = '%s' and hostgroup_id = %d", p.table, hostname, hostgroup))
+	_, err := p.conn.Exec(fmt.Sprintf("delete from %s where hostname = '%s' and hostgroup_id = %d", p.defaultTable, hostname, hostgroup))
 	return err
 }
+
+// instead of string: int, it should be slice of Host s
 
 func (p *ProxySQL) All() (map[string]int, error) {
 	entries := make(map[string]int)
-	allQuery := fmt.Sprintf("select hostname, hostgroup_id from %s", p.table)
+	allQuery := fmt.Sprintf("select hostname, hostgroup_id from %s", p.defaultTable)
 	rows, err := query(p, allQuery)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var hostname string
-		var hostgroup int
+		var (
+			hostname  string
+			hostgroup int
+		)
 		err := scanRows(rows, &hostname, &hostgroup)
 		if err != nil {
 			return nil, err
@@ -125,9 +122,11 @@ func (p *ProxySQL) All() (map[string]int, error) {
 	return entries, nil
 }
 
+// maybe call this Like(), and return a slice of Host s that are Like the provided configuration
+
 func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	entries := make(map[string]int)
-	readQuery := fmt.Sprintf("select hostname, hostgroup_id from %s where hostgroup_id = %d", p.table, hostgroup)
+	readQuery := fmt.Sprintf("select hostname, hostgroup_id from %s where hostgroup_id = %d", p.defaultTable, hostgroup)
 	rows, err := query(p, readQuery)
 	if err != nil {
 		return nil, err
@@ -151,9 +150,12 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	return entries, nil
 }
 
+// call this AmountLike or something similar?
+// and only query specifically with provided values
+
 func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	var numInstances int
-	countQuery := fmt.Sprintf("select count(*) from %s where hostgroup_id = %d", p.table, hostgroup)
+	countQuery := fmt.Sprintf("select count(*) from %s where hostgroup_id = %d", p.defaultTable, hostgroup)
 	err := scanRow(p.conn.QueryRow(countQuery), &numInstances)
 	if err != nil {
 		return -1, err
@@ -161,6 +163,7 @@ func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	return numInstances, nil
 }
 
+// TODO put these in an init() boi, so its easy to reset in tests
 // wrappers around standard sql funcs for testing
 var exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
 	return p.conn.Exec(queryString)

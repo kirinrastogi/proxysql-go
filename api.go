@@ -2,29 +2,25 @@ package proxysql
 
 import (
 	"database/sql"
-	"errors"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var open func(string, string) (*sql.DB, error) = sql.Open
-var (
-	ErrConfigBadTable error = errors.New("Bad default table, must be one of 'mysql_servers', 'runtime_mysql_servers'")
-)
 
-type Options struct {
+type options struct {
 	defaultTable string
 }
 
-type Opt func(*Options)
+type opt func(*options)
 
-func DefaultTable(t string) Opt {
-	return func(opt *Options) {
-		opt.defaultTable = t
+func DefaultTable(t string) opt {
+	return func(opts *options) {
+		opts.defaultTable = t
 	}
 }
 
-func New(dsn string, setters ...Opt) (*ProxySQL, error) {
-	opts := &Options{
+func New(dsn string, setters ...opt) (*ProxySQL, error) {
+	opts := &options{
 		defaultTable: "mysql_servers",
 	}
 
@@ -42,8 +38,8 @@ func New(dsn string, setters ...Opt) (*ProxySQL, error) {
 		return nil, err
 	}
 	return &ProxySQL{
-		dsn:   dsn,
-		conn:  conn,
-		table: opts.defaultTable,
+		dsn:          dsn,
+		conn:         conn,
+		defaultTable: opts.defaultTable,
 	}, nil
 }
