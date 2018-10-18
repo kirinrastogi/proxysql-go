@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-type vOpts func(*queryOpts) error
+type vOpts func(*hostQuery) error
 
 var (
 	ErrConfigBadTable     error = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
@@ -21,7 +21,7 @@ func init() {
 	validationFuncs = append(validationFuncs, validatePort)
 }
 
-func validateTableOpts(opts *queryOpts) error {
+func validateTableOpts(opts *hostQuery) error {
 	return validateTable(opts.table)
 }
 
@@ -32,21 +32,21 @@ func validateTable(t string) error {
 	return nil
 }
 
-func validateHostgroup(opts *queryOpts) error {
-	if opts.hostgroup < 0 || opts.hostgroup > 2147483648 {
+func validateHostgroup(opts *hostQuery) error {
+	if opts.host.hostgroup_id < 0 || opts.host.hostgroup_id > 2147483648 {
 		return ErrConfigBadHostgroup
 	}
 	return nil
 }
 
-func validatePort(opts *queryOpts) error {
-	if opts.port < 0 || opts.port > 65535 {
+func validatePort(opts *hostQuery) error {
+	if opts.host.port < 0 || opts.host.port > 65535 {
 		return ErrConfigBadPort
 	}
 	return nil
 }
 
-func validateQOpts(opts *queryOpts) error {
+func validateHostQuery(opts *hostQuery) error {
 	for _, validate := range validationFuncs {
 		if err := validate(opts); err != nil {
 			return err

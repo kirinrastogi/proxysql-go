@@ -5,7 +5,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var open func(string, string) (*sql.DB, error) = sql.Open
+type sqlOpen func(string, string) (*sql.DB, error)
+
+var open sqlOpen
+
+func init() {
+	open = sql.Open
+}
 
 type options struct {
 	defaultTable string

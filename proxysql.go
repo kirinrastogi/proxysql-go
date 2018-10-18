@@ -75,8 +75,21 @@ func (p *ProxySQL) HostExists(hostname string) (bool, error) {
 // Add host with values specified
 // use default Host, and set with ...HostOpts
 
-func (p *ProxySQL) AddHost(hostname string, hostgroup int, maxConnections int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.defaultTable, hostgroup, hostname, maxConnections))
+func (p *ProxySQL) AddHost(hostname string, opts ...hostOpts) error {
+	hostq := defaultHostQuery()
+	hostq.table = p.defaultTable
+	hostq.host.hostname = hostname
+	for _, setter := range opts {
+		setter(hostq)
+	}
+
+	// validate query params
+	if err := validateHostQuery(hostq); err != nil {
+		return err
+	}
+
+	// build a query with these options
+	_, err := exec(p, buildInsertQuery(hostq))
 	return err
 }
 

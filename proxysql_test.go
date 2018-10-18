@@ -173,7 +173,6 @@ func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
 	}
 	t.Log("inserting into ProxySQL")
 	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'readerHost', 1000)")
-	os.Exit(0)
 	if exists, _ := conn.HostExists("readerHost"); !exists {
 		t.Log("readerHost was inserted but not read")
 		t.Fail()
@@ -320,11 +319,28 @@ func TestAddHostAddsAHost(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", 3, 1000)
+	conn.AddHost("some-host")
 	var hostname string
 	var hostgroup int
 	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
-	if hostname != "some-host" || hostgroup != 3 {
+	if hostname != "some-host" || hostgroup != 0 {
+		t.Logf("hostname or hostgroup read were not the ones in AddHost %s, %d", hostname, hostgroup)
+		t.Fail()
+	}
+}
+
+func TestAddHostAddsAHostToHostgroup(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost("some-host", Hostgroup(1))
+	var hostname string
+	var hostgroup int
+	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
+	if hostname != "some-host" || hostgroup != 1 {
 		t.Logf("hostname or hostgroup read were not the ones in AddHost %s, %d", hostname, hostgroup)
 		t.Fail()
 	}
@@ -525,7 +541,7 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	}
 	t.Log("inserting into ProxySQL")
 	for hostname, hostgroup := range entries {
-		conn.AddHost(hostname, hostgroup, 1000)
+		conn.AddHost(hostname, Hostgroup(hostgroup))
 	}
 	err = conn.PersistChanges()
 	if err != nil {
@@ -573,7 +589,7 @@ func TestHostgroupErrorsOnScanError(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", 0, 1000)
+	conn.AddHost("some-host", Hostgroup(0))
 	scanErr := errors.New("error scanning rows")
 	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
 		return scanErr
@@ -596,7 +612,7 @@ func TestHostgroupReturnsEmptyMapOnNoRows(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", 0, 1000)
+	conn.AddHost("some-host", Hostgroup(0))
 	scanErr := errors.New("error scanning rows")
 	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
 		return scanErr
@@ -619,8 +635,8 @@ func TestHostgroupReturnsErrorOnRowsErr(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", 0, 1000)
-	conn.AddHost("some-host2", 1, 1000)
+	conn.AddHost("some-host", Hostgroup(0))
+	conn.AddHost("some-host2", Hostgroup(1))
 	rowsError := errors.New("error in rows")
 	rowsErr = func(_ *sql.Rows) error {
 		return rowsError
@@ -648,7 +664,7 @@ func TestHostgroupHappyPath(t *testing.T) {
 		"writer":  0,
 	}
 	for k, v := range entries {
-		conn.AddHost(k, v, 1000)
+		conn.AddHost(k, Hostgroup(v))
 	}
 	hostgroup, err := conn.Hostgroup(0)
 	if err != nil {
