@@ -12,6 +12,20 @@ type ProxySQL struct {
 	defaultTable string
 }
 
+type Host struct {
+	hostgroup_id        int
+	hostname            string
+	port                int
+	status              string
+	weight              int
+	compression         int
+	max_connections     int
+	max_replication_lag int
+	use_ssl             int
+	max_latency_ms      int
+	comment             string
+}
+
 func (p *ProxySQL) Ping() error {
 	return p.conn.Ping()
 }
@@ -48,26 +62,40 @@ func (p *ProxySQL) PersistChanges() error {
 	return nil
 }
 
+// HostExists with values specified ...HostOpts
+// only include specified values in query
+// if they want to delete a host with a specific hostname, only use that
+
 func (p *ProxySQL) HostExists(hostname string) (bool, error) {
 	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from %s where hostname = '%s'", p.defaultTable, hostname))
 	defer hostRows.Close()
 	return hostRows.Next(), err
 }
 
+// Add host with values specified
+// use default Host, and set with ...HostOpts
+
 func (p *ProxySQL) AddHost(hostname string, hostgroup int, maxConnections int) error {
 	_, err := p.conn.Exec(fmt.Sprintf("insert into %s (hostgroup_id, hostname, max_connections) values (%d, '%s', %d)", p.defaultTable, hostgroup, hostname, maxConnections))
 	return err
 }
+
+// Remove host with values specified
+// like HostExists
 
 func (p *ProxySQL) RemoveHost(hostname string) error {
 	_, err := exec(p, fmt.Sprintf("delete from %s where hostname = '%s'", p.defaultTable, hostname))
 	return err
 }
 
+// delete this
+
 func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error {
 	_, err := p.conn.Exec(fmt.Sprintf("delete from %s where hostname = '%s' and hostgroup_id = %d", p.defaultTable, hostname, hostgroup))
 	return err
 }
+
+// instead of string: int, it should be slice of Host s
 
 func (p *ProxySQL) All() (map[string]int, error) {
 	entries := make(map[string]int)
@@ -78,8 +106,10 @@ func (p *ProxySQL) All() (map[string]int, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var hostname string
-		var hostgroup int
+		var (
+			hostname  string
+			hostgroup int
+		)
 		err := scanRows(rows, &hostname, &hostgroup)
 		if err != nil {
 			return nil, err
@@ -91,6 +121,8 @@ func (p *ProxySQL) All() (map[string]int, error) {
 	}
 	return entries, nil
 }
+
+// maybe call this Like(), and return a slice of Host s that are Like the provided configuration
 
 func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	entries := make(map[string]int)
@@ -118,6 +150,9 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	return entries, nil
 }
 
+// call this AmountLike or something similar?
+// and only query specifically with provided values
+
 func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	var numInstances int
 	countQuery := fmt.Sprintf("select count(*) from %s where hostgroup_id = %d", p.defaultTable, hostgroup)
@@ -128,6 +163,7 @@ func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	return numInstances, nil
 }
 
+// TODO put these in an init() boi, so its easy to reset in tests
 // wrappers around standard sql funcs for testing
 var exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
 	return p.conn.Exec(queryString)

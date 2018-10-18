@@ -1,5 +1,8 @@
 package proxysql
 
+// TODO make this a struct that contains a Host, and a table ?
+// Then qOpts will set queryOpts.Host or queryOpts.table
+
 type queryOpts struct {
 	table     string
 	hostgroup int
@@ -40,6 +43,9 @@ func (q *queryOpts) Port(p int) *queryOpts {
 	q.port = p
 	return q
 }
+
+// TODO move this to util.go
+// TODO add defaultNoOpQueryOpts() for only including certain data in sql query generation
 
 func defaultQueryOpts() *queryOpts {
 	return &queryOpts{
