@@ -319,7 +319,11 @@ func TestAddHostAddsAHost(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host")
+	err = conn.AddHost("some-host")
+	if err != nil {
+		t.Logf("unexpected err adding host: %v", err)
+		t.Fail()
+	}
 	var hostname string
 	var hostgroup int
 	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
@@ -336,12 +340,30 @@ func TestAddHostAddsAHostToHostgroup(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", Hostgroup(1))
+	err = conn.AddHost("some-host", Hostgroup(1))
+	if err != nil {
+		t.Logf("unexpected err adding host: %v", err)
+		t.Fail()
+	}
 	var hostname string
 	var hostgroup int
 	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
 	if hostname != "some-host" || hostgroup != 1 {
 		t.Logf("hostname or hostgroup read were not the ones in AddHost %s, %d", hostname, hostgroup)
+		t.Fail()
+	}
+}
+
+func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	err = conn.AddHost("some-host", Hostgroup(1), Port(-1))
+	if err != ErrConfigBadPort {
+		t.Logf("did not receive err about bad port: %v", err)
 		t.Fail()
 	}
 }
