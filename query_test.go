@@ -61,3 +61,59 @@ func TestBuildAndParseHostQueryError(t *testing.T) {
 		t.Fatalf("returned query obj was not null: %v", opts)
 	}
 }
+
+func TestBuildSpecifiedColumns(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Hostgroup(1), Port(12))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	queryString := buildSpecifiedColumns(opts.specifiedFields)
+	expected := "(hostgroup_id, port)"
+	if expected != queryString {
+		t.Fatalf("specified fields returned were not expected: %s != %s", expected, queryString)
+	}
+}
+
+func TestBuildSpecifiedColumnsDifferentOrder(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	queryString := buildSpecifiedColumns(opts.specifiedFields)
+	expected := "(port, hostgroup_id)"
+	if expected != queryString {
+		t.Fatalf("specified fields returned were not expected: %s != %s", expected, queryString)
+	}
+}
+
+func TestBuildSpecifiedColumnsDoesntGiveUsDuplicates(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12), Port(2))
+	if err != ErrConfigDuplicateSpec {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	if opts != nil {
+		t.Fatalf("did not receive nil value: %v", opts)
+	}
+}
+
+func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	for i := 0; i < 10; i++ {
+		queryString := buildSpecifiedColumns(opts.specifiedFields)
+		expected := "(port, hostgroup_id)"
+		if expected != queryString {
+			t.Fatalf("specified fields returned were not expected: %s != %s", expected, queryString)
+		}
+	}
+}

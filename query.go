@@ -1,27 +1,53 @@
 package proxysql
 
 import (
+	"bytes"
 	"fmt"
 )
 
-// TODO make this a struct that contains a Host, and a table ?
-// Then hostOpts will set hostQuery.Host or hostQuery.table
+// the type of queries we want to build are as follows:
+
+// select (specified_values) from table where a=b c='d' e=f
+
+// delete from TABLE where a=b c='d' e=f
+
+// insert into TABLE (specified_values) values (b, 'd', f)
 
 type hostQuery struct {
-	table string
-	host  *Host
+	table           string
+	host            *Host
+	specifiedFields []string
 }
 
 type hostOpts func(*hostQuery) *hostQuery
 
-// because this is passed the defaults
+// given a slice of fields
+// returns a string like (sv_1, sv_2, sv_3)
+func buildSpecifiedColumns(specifiedFields []string) string {
+	var buffer bytes.Buffer
+	for pos, field := range specifiedFields {
+		buffer.WriteString(field)
+		// don't add a comma at the end if its last one
+		if pos != len(specifiedFields)-1 {
+			buffer.WriteString(", ")
+		}
+	}
+	return fmt.Sprintf("(%s)", buffer.String())
+}
+
+// TODO use the complex query builder when finished
+// because this is passed the defaults it doesn't need a complex builder yet
 func buildInsertQuery(opts *hostQuery) string {
 	host := opts.host
 	return fmt.Sprintf("insert into %s (hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment) values (%d, '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", opts.table, host.hostgroup_id, host.hostname, host.port, host.status, host.weight, host.compression, host.max_connections, host.max_replication_lag, host.use_ssl, host.max_latency_ms, host.comment)
 }
 
-// TODO pass these slices that they modify??
-// how do you determine what values to include in select queries?
+// use this when building queries, include the value if it is specified.
+// if this is the table, use that too, as the specified table trumps the default one
+func (opts *hostQuery) specifyField(field string) *hostQuery {
+	opts.specifiedFields = append(opts.specifiedFields, field)
+	return opts
+}
 
 func Hostgroup(h int) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
@@ -43,22 +69,24 @@ func Port(p int) hostOpts {
 
 func (q *hostQuery) Table(t string) *hostQuery {
 	q.table = t
-	return q
+	return q.specifyField("table")
 }
 
 func (q *hostQuery) Hostgroup(h int) *hostQuery {
 	q.host.hostgroup_id = h
-	return q
+	return q.specifyField("hostgroup_id")
 }
 
 func (q *hostQuery) Port(p int) *hostQuery {
 	q.host.port = p
-	return q
+	return q.specifyField("port")
 }
 
 // hostname is the only non default value
 // if its not specified query should return an error
 
+// TODO decide on default hostname, should functions like AddHost set it themselves?
+// what about a func that doesn't use hostname? It should be specified also
 func defaultHost() *Host {
 	return &Host{
 		0,                // hostgroup_id
@@ -75,37 +103,11 @@ func defaultHost() *Host {
 	}
 }
 
-func emptyHost() *Host {
-	return &Host{
-		-1,
-		"empty_hostname",
-		-1,
-		"",
-		-1,
-		-1,
-		-1,
-		-1,
-		-1,
-		-1,
-		"",
-	}
-}
-
 // should have all zero values set
 func defaultHostQuery() *hostQuery {
 	return &hostQuery{
 		table: "mysql_servers",
 		host:  defaultHost(),
-	}
-}
-
-// should have empty non valid values
-// these need to be checked with a validation function
-// when the query is being built
-func emptyHostQuery() *hostQuery {
-	return &hostQuery{
-		table: "mysql_servers",
-		host:  emptyHost(),
 	}
 }
 
