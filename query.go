@@ -143,8 +143,9 @@ func defaultHostQuery() *hostQuery {
 	}
 }
 
-func buildAndParseHostQuery(setters ...hostOpts) (*hostQuery, error) {
+func buildAndParseHostQuery(defaultTable string, setters ...hostOpts) (*hostQuery, error) {
 	opts := defaultHostQuery()
+	opts.table = defaultTable
 	for _, setter := range setters {
 		setter(opts)
 	}
@@ -158,8 +159,8 @@ func buildAndParseHostQuery(setters ...hostOpts) (*hostQuery, error) {
 }
 
 // same as above but mandatory hostname
-func buildAndParseHostQueryWithHostname(setters ...hostOpts) (*hostQuery, error) {
-	opts, err := buildAndParseHostQuery(setters...)
+func buildAndParseHostQueryWithHostname(defaultTable string, setters ...hostOpts) (*hostQuery, error) {
+	opts, err := buildAndParseHostQuery(defaultTable, setters...)
 	if err != nil {
 		return nil, err
 	}

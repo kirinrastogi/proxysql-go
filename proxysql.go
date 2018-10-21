@@ -76,7 +76,7 @@ func (p *ProxySQL) HostExists(hostname string) (bool, error) {
 // use default Host, and set with ...HostOpts
 
 func (p *ProxySQL) AddHost(opts ...hostOpts) error {
-	hostq, err := buildAndParseHostQueryWithHostname(opts...)
+	hostq, err := buildAndParseHostQueryWithHostname(p.defaultTable, opts...)
 	if err != nil {
 		return err
 	}

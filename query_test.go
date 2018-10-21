@@ -39,7 +39,7 @@ func TestHostname(t *testing.T) {
 }
 
 func TestBuildAndParseEmptyHostQuery(t *testing.T) {
-	opts, err := buildAndParseHostQuery()
+	opts, err := buildAndParseHostQuery("mysql_servers")
 	if err != nil {
 		t.Logf("unexpected err: %v", err)
 		t.Fail()
@@ -49,8 +49,30 @@ func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 	}
 }
 
+func TestBuildAndParseHostQueryPrefersOverridingTable(t *testing.T) {
+	opts, err := buildAndParseHostQuery("mysql_servers", Table("runtime_mysql_servers"))
+	if err != nil {
+		t.Logf("unexpected err: %v", err)
+		t.Fail()
+	}
+	if opts.table != "runtime_mysql_servers" {
+		t.Fatal("table used was default, not overridden one")
+	}
+}
+
+func TestBuildAndParseHostQueryUsesDefaultTable(t *testing.T) {
+	opts, err := buildAndParseHostQuery("runtime_mysql_servers", Hostname("some-host"))
+	if err != nil {
+		t.Logf("unexpected err: %v", err)
+		t.Fail()
+	}
+	if opts.table != "runtime_mysql_servers" {
+		t.Fatal("table used was not default one")
+	}
+}
+
 func TestBuildAndParseEmptyHostQueryWithHostnameFailsHostnameValidation(t *testing.T) {
-	opts, err := buildAndParseHostQueryWithHostname()
+	opts, err := buildAndParseHostQueryWithHostname("mysql_servers")
 	if err != ErrConfigNoHostname {
 		t.Logf("did not get expected err: %v", err)
 		t.Fail()
@@ -61,7 +83,7 @@ func TestBuildAndParseEmptyHostQueryWithHostnameFailsHostnameValidation(t *testi
 }
 
 func TestBuildAndParseHostQueryWithHostnameFailsWhenParentFails(t *testing.T) {
-	opts, err := buildAndParseHostQueryWithHostname(Port(1), Port(2))
+	opts, err := buildAndParseHostQueryWithHostname("mysql_servers", Port(1), Port(2))
 	if err != ErrConfigDuplicateSpec {
 		t.Logf("did not get expected err: %v", err)
 		t.Fail()
@@ -72,7 +94,7 @@ func TestBuildAndParseHostQueryWithHostnameFailsWhenParentFails(t *testing.T) {
 }
 
 func TestBuildAndParseHostQueryWithHostnameSucceedsWithHostname(t *testing.T) {
-	opts, err := buildAndParseHostQueryWithHostname(Hostname("hostname"))
+	opts, err := buildAndParseHostQueryWithHostname("mysql_servers", Hostname("hostname"))
 	if err != nil {
 		t.Logf("unexpected err: %v", err)
 		t.Fail()
@@ -83,7 +105,7 @@ func TestBuildAndParseHostQueryWithHostnameSucceedsWithHostname(t *testing.T) {
 }
 
 func TestBuildAndParseHostQueryWithHostgroup(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Hostgroup(1))
+	opts, err := buildAndParseHostQuery("mysql_servers", Hostgroup(1))
 	if err != nil {
 		t.Logf("unexpected err: %v", err)
 		t.Fail()
@@ -94,7 +116,7 @@ func TestBuildAndParseHostQueryWithHostgroup(t *testing.T) {
 }
 
 func TestBuildAndParseHostQueryError(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Hostgroup(-1))
+	opts, err := buildAndParseHostQuery("mysql_servers", Hostgroup(-1))
 	if err != ErrConfigBadHostgroup {
 		t.Logf("did not receive expected err: %v", err)
 		t.Fail()
@@ -105,7 +127,7 @@ func TestBuildAndParseHostQueryError(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumns(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Hostgroup(1), Port(12))
+	opts, err := buildAndParseHostQuery("mysql_servers", Hostgroup(1), Port(12))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -119,7 +141,7 @@ func TestBuildSpecifiedColumns(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumnsDifferentOrder(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	opts, err := buildAndParseHostQuery("mysql_servers", Port(1), Hostgroup(12))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -133,7 +155,7 @@ func TestBuildSpecifiedColumnsDifferentOrder(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumnsDoesntGiveUsDuplicates(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12), Port(2))
+	opts, err := buildAndParseHostQuery("mysql_servers", Port(1), Hostgroup(12), Port(2))
 	if err != ErrConfigDuplicateSpec {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -145,7 +167,7 @@ func TestBuildSpecifiedColumnsDoesntGiveUsDuplicates(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	opts, err := buildAndParseHostQuery("mysql_servers", Port(1), Hostgroup(12))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -161,7 +183,7 @@ func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
 }
 
 func TestBuildSpecifiedValues(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery("mysql_servers", Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -175,7 +197,7 @@ func TestBuildSpecifiedValues(t *testing.T) {
 }
 
 func TestColumnsAndValuesHaveTheSameAmountOfCommas(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery("mysql_servers", Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -189,7 +211,7 @@ func TestColumnsAndValuesHaveTheSameAmountOfCommas(t *testing.T) {
 }
 
 func TestBuildInsertQuery(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery("mysql_servers", Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()

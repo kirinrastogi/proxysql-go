@@ -45,7 +45,7 @@ func TestNewWithDefaultTableSetsTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	if conn.defaultTable != "runtime_mysql_servers" {
-		t.Log("default hostgroups were not 0 and 1")
+		t.Log("default table was not runtime_mysql_servers")
 		t.Fail()
 	}
 }
@@ -329,6 +329,56 @@ func TestAddHostAddsAHost(t *testing.T) {
 	conn.conn.QueryRow("select hostname, hostgroup_id from mysql_servers").Scan(&hostname, &hostgroup)
 	if hostname != "some-host" || hostgroup != 0 {
 		t.Logf("hostname or hostgroup read were not the ones in AddHost %s, %d", hostname, hostgroup)
+		t.Fail()
+	}
+}
+
+func TestAddHostUsesOverridedTable(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), DefaultTable("runtime_mysql_servers"))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	err = conn.AddHost(Hostname("some-host"), Table("mysql_servers"), Hostgroup(1), Port(3307))
+	if err != nil {
+		t.Logf("unexpected err adding host: %v", err)
+		t.Fail()
+	}
+	var (
+		hostname  string
+		hostgroup int
+		port      int
+	)
+	conn.conn.QueryRow("select hostname, hostgroup_id, port from mysql_servers").Scan(&hostname, &hostgroup, &port)
+	if hostname != "some-host" || hostgroup != 1 || port != 3307 {
+		t.Log("is the default table being used? Is it being overridden properly?")
+		t.Logf("hostname or hostgroup or port read were not the ones in AddHost %s, %d, %d", hostname, hostgroup, port)
+		t.Fail()
+	}
+}
+
+func TestAddHostUsesDefaultTable(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), DefaultTable("runtime_mysql_servers"))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	err = conn.AddHost(Hostname("some-host"), Hostgroup(1), Port(3307))
+	if err != nil {
+		t.Logf("unexpected err adding host: %v", err)
+		t.Fail()
+	}
+	var (
+		hostname  string
+		hostgroup int
+		port      int
+	)
+	conn.conn.QueryRow("select hostname, hostgroup_id, port from runtime_mysql_servers").Scan(&hostname, &hostgroup, &port)
+	if hostname != "some-host" || hostgroup != 1 || port != 3307 {
+		t.Log("is the default table being used? Is it being overridden properly?")
+		t.Logf("hostname or hostgroup or port read were not the ones in AddHost %s, %d, %d", hostname, hostgroup, port)
 		t.Fail()
 	}
 }
