@@ -1,6 +1,7 @@
 package proxysql
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -10,18 +11,46 @@ import (
 type hostQuery struct {
 	table string
 	host  *Host
+	// TODO make this a map[string]struct{} so no duplicates
+	specifiedFields []string
 }
 
 type hostOpts func(*hostQuery) *hostQuery
 
+// reads
+// select (specified_values) from table where a=b c='d' e=f
+
+// writes
+// delete from TABLE where a=b c='d' e=f
+// insert into TABLE (specified_values) values (b, 'd', f)
+
+// given a hostQuery
+// returns a string like (sv_1, sv_2, sv_3)
+func buildSpecifiedColumns(opts *hostQuery) string {
+	var buffer bytes.Buffer
+	for pos, col := range opts.specifiedFields {
+		buffer.WriteString(col)
+		// don't add a comma at the end if its last one
+		if pos != len(opts.specifiedFields)-1 {
+			buffer.WriteString(", ")
+		}
+	}
+	return fmt.Sprintf("(%s)", buffer.String())
+}
+
 // because this is passed the defaults
 func buildInsertQuery(opts *hostQuery) string {
 	host := opts.host
+	// query is concat of base + specs
 	return fmt.Sprintf("insert into %s (hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment) values (%d, '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", opts.table, host.hostgroup_id, host.hostname, host.port, host.status, host.weight, host.compression, host.max_connections, host.max_replication_lag, host.use_ssl, host.max_latency_ms, host.comment)
 }
 
-// TODO pass these slices that they modify??
-// how do you determine what values to include in select queries?
+// use this when building queries, include the value if it is specified.
+// if this is the table, use that too, as the specified table trumps the default one
+func (opts *hostQuery) specifyField(field string) *hostQuery {
+	opts.specifiedFields = append(opts.specifiedFields, field)
+	return opts
+}
 
 func Hostgroup(h int) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
@@ -43,17 +72,17 @@ func Port(p int) hostOpts {
 
 func (q *hostQuery) Table(t string) *hostQuery {
 	q.table = t
-	return q
+	return q.specifyField("table")
 }
 
 func (q *hostQuery) Hostgroup(h int) *hostQuery {
 	q.host.hostgroup_id = h
-	return q
+	return q.specifyField("hostgroup_id")
 }
 
 func (q *hostQuery) Port(p int) *hostQuery {
 	q.host.port = p
-	return q
+	return q.specifyField("port")
 }
 
 // hostname is the only non default value
@@ -75,37 +104,11 @@ func defaultHost() *Host {
 	}
 }
 
-func emptyHost() *Host {
-	return &Host{
-		-1,
-		"empty_hostname",
-		-1,
-		"",
-		-1,
-		-1,
-		-1,
-		-1,
-		-1,
-		-1,
-		"",
-	}
-}
-
 // should have all zero values set
 func defaultHostQuery() *hostQuery {
 	return &hostQuery{
 		table: "mysql_servers",
 		host:  defaultHost(),
-	}
-}
-
-// should have empty non valid values
-// these need to be checked with a validation function
-// when the query is being built
-func emptyHostQuery() *hostQuery {
-	return &hostQuery{
-		table: "mysql_servers",
-		host:  emptyHost(),
 	}
 }
 

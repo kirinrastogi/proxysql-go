@@ -92,9 +92,3 @@ func TestDefaultHostQueryIsValid(t *testing.T) {
 		t.Fatalf("default query object is not valid: %v", err)
 	}
 }
-
-func TestEmptyHostQueryIsNotValid(t *testing.T) {
-	if err := validateHostQuery(emptyHostQuery()); err == nil {
-		t.Fatal("empty/invalid host query passed validation")
-	}
-}

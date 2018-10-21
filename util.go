@@ -46,6 +46,8 @@ func validatePort(opts *hostQuery) error {
 	return nil
 }
 
+// TODO
+// this also checks for duplicate specified values
 func validateHostQuery(opts *hostQuery) error {
 	for _, validate := range validationFuncs {
 		if err := validate(opts); err != nil {

@@ -61,3 +61,31 @@ func TestBuildAndParseHostQueryError(t *testing.T) {
 		t.Fatalf("returned query obj was not null: %v", opts)
 	}
 }
+
+func TestBuildSpecifiedColumns(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Hostgroup(1), Port(12))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	queryString := buildSpecifiedColumns(opts)
+	expected := "(hostgroup_id, port)"
+	if expected != queryString {
+		t.Fatalf("specified fields returned were not expected: %s != %s", expected, queryString)
+	}
+}
+
+func TestBuildSpecifiedColumnsDifferentOrder(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	queryString := buildSpecifiedColumns(opts)
+	expected := "(port, hostgroup_id)"
+	if expected != queryString {
+		t.Fatalf("specified fields returned were not expected: %s != %s", expected, queryString)
+	}
+}
