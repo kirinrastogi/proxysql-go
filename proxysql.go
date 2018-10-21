@@ -75,23 +75,13 @@ func (p *ProxySQL) HostExists(hostname string) (bool, error) {
 // Add host with values specified
 // use default Host, and set with ...HostOpts
 
-func (p *ProxySQL) AddHost(hostname string, opts ...hostOpts) error {
-	// TODO set the table, and then use buildAndParseHostQuery here
-	// rework this order
-	hostq := defaultHostQuery()
-	hostq.table = p.defaultTable
-	hostq.host.hostname = hostname
-	for _, setter := range opts {
-		setter(hostq)
-	}
-
-	// validate query params
-	if err := validateHostQuery(hostq); err != nil {
+func (p *ProxySQL) AddHost(opts ...hostOpts) error {
+	hostq, err := buildAndParseHostQueryWithHostname(opts...)
+	if err != nil {
 		return err
 	}
-
 	// build a query with these options
-	_, err := exec(p, buildInsertQuery(hostq))
+	_, err = exec(p, buildInsertQuery(hostq))
 	return err
 }
 
