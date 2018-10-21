@@ -73,7 +73,23 @@ func TestValidateSpecifiedFields(t *testing.T) {
 		obj := testCase.in
 		err := testCase.out
 		if validateSpecifiedFields(obj) != err {
-			t.Logf("did not match expected validation. port %d, err %v", obj.host.port, err)
+			t.Logf("did not match expected validation. port %v, err %v", obj.specifiedFields, err)
+			t.Fail()
+		}
+	}
+}
+
+func TestValidateHostname(t *testing.T) {
+	hostnameTests := hostQueryTests{
+		{defaultHostQuery(), ErrConfigNoHostname},
+		{defaultHostQuery().Hostname("hostname"), nil},
+	}
+
+	for _, testCase := range hostnameTests {
+		obj := testCase.in
+		err := testCase.out
+		if validateHostname(obj) != err {
+			t.Logf("did not match expected validation. port %s, err %v", obj.host.hostname, err)
 			t.Fail()
 		}
 	}
