@@ -5,8 +5,13 @@ import (
 	"fmt"
 )
 
-// TODO make this a struct that contains a Host, and a table ?
-// Then hostOpts will set hostQuery.Host or hostQuery.table
+// the type of queries we want to build are as follows:
+
+// select (specified_values) from table where a=b c='d' e=f
+
+// delete from TABLE where a=b c='d' e=f
+
+// insert into TABLE (specified_values) values (b, 'd', f)
 
 type hostQuery struct {
 	table           string
@@ -16,14 +21,7 @@ type hostQuery struct {
 
 type hostOpts func(*hostQuery) *hostQuery
 
-// reads
-// select (specified_values) from table where a=b c='d' e=f
-
-// writes
-// delete from TABLE where a=b c='d' e=f
-// insert into TABLE (specified_values) values (b, 'd', f)
-
-// given a hostQuery
+// given a slice of fields
 // returns a string like (sv_1, sv_2, sv_3)
 func buildSpecifiedColumns(specifiedFields []string) string {
 	var buffer bytes.Buffer
@@ -37,10 +35,10 @@ func buildSpecifiedColumns(specifiedFields []string) string {
 	return fmt.Sprintf("(%s)", buffer.String())
 }
 
-// because this is passed the defaults
+// TODO use the complex query builder when finished
+// because this is passed the defaults it doesn't need a complex builder yet
 func buildInsertQuery(opts *hostQuery) string {
 	host := opts.host
-	// query is concat of base + specs
 	return fmt.Sprintf("insert into %s (hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment) values (%d, '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", opts.table, host.hostgroup_id, host.hostname, host.port, host.status, host.weight, host.compression, host.max_connections, host.max_replication_lag, host.use_ssl, host.max_latency_ms, host.comment)
 }
 
@@ -87,6 +85,8 @@ func (q *hostQuery) Port(p int) *hostQuery {
 // hostname is the only non default value
 // if its not specified query should return an error
 
+// TODO decide on default hostname, should functions like AddHost set it themselves?
+// what about a func that doesn't use hostname? It should be specified also
 func defaultHost() *Host {
 	return &Host{
 		0,                // hostgroup_id
