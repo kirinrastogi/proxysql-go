@@ -7,9 +7,10 @@ import (
 type vOpts func(*hostQuery) error
 
 var (
-	ErrConfigBadTable     error = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
-	ErrConfigBadHostgroup error = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
-	ErrConfigBadPort      error = errors.New("Bad port value, must be in [0, 65535]")
+	ErrConfigBadTable      error = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
+	ErrConfigBadHostgroup  error = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
+	ErrConfigBadPort       error = errors.New("Bad port value, must be in [0, 65535]")
+	ErrConfigDuplicateSpec error = errors.New("Bad function call, a value was specified twice")
 
 	validationFuncs []vOpts
 )
@@ -19,6 +20,7 @@ func init() {
 	validationFuncs = append(validationFuncs, validateTableOpts)
 	validationFuncs = append(validationFuncs, validateHostgroup)
 	validationFuncs = append(validationFuncs, validatePort)
+	validationFuncs = append(validationFuncs, validateSpecifiedFields)
 }
 
 func validateTableOpts(opts *hostQuery) error {
@@ -46,8 +48,20 @@ func validatePort(opts *hostQuery) error {
 	return nil
 }
 
-// TODO
-// this also checks for duplicate specified values
+// returns ErrConfigDuplicateSpec if a duplicate occurs
+func validateSpecifiedFields(opts *hostQuery) error {
+	encountered := make(map[string]struct{})
+	for _, field := range opts.specifiedFields {
+		// if field is encountered, return error
+		if _, exists := encountered[field]; exists {
+			return ErrConfigDuplicateSpec
+		}
+		// add field to encountered
+		encountered[field] = struct{}{}
+	}
+	return nil
+}
+
 func validateHostQuery(opts *hostQuery) error {
 	for _, validate := range validationFuncs {
 		if err := validate(opts); err != nil {

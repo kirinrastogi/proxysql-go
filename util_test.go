@@ -63,7 +63,23 @@ func TestValidatePort(t *testing.T) {
 	}
 }
 
-func TestValidateQOpts(t *testing.T) {
+func TestValidateSpecifiedFields(t *testing.T) {
+	specTests := hostQueryTests{
+		{defaultHostQuery().Hostgroup(1).Port(1), nil},
+		{defaultHostQuery().Hostgroup(1).Port(1).Port(2), ErrConfigDuplicateSpec},
+	}
+
+	for _, testCase := range specTests {
+		obj := testCase.in
+		err := testCase.out
+		if validateSpecifiedFields(obj) != err {
+			t.Logf("did not match expected validation. port %d, err %v", obj.host.port, err)
+			t.Fail()
+		}
+	}
+}
+
+func TestValidateHostQuery(t *testing.T) {
 	tests := hostQueryTests{
 		{defaultHostQuery(), nil},
 		{defaultHostQuery().Table("runtime_mysql_servers"), nil},

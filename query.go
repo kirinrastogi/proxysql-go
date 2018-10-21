@@ -9,9 +9,8 @@ import (
 // Then hostOpts will set hostQuery.Host or hostQuery.table
 
 type hostQuery struct {
-	table string
-	host  *Host
-	// TODO make this a map[string]struct{} so no duplicates
+	table           string
+	host            *Host
 	specifiedFields []string
 }
 
@@ -26,12 +25,12 @@ type hostOpts func(*hostQuery) *hostQuery
 
 // given a hostQuery
 // returns a string like (sv_1, sv_2, sv_3)
-func buildSpecifiedColumns(opts *hostQuery) string {
+func buildSpecifiedColumns(specifiedFields []string) string {
 	var buffer bytes.Buffer
-	for pos, col := range opts.specifiedFields {
-		buffer.WriteString(col)
+	for pos, field := range specifiedFields {
+		buffer.WriteString(field)
 		// don't add a comma at the end if its last one
-		if pos != len(opts.specifiedFields)-1 {
+		if pos != len(specifiedFields)-1 {
 			buffer.WriteString(", ")
 		}
 	}
