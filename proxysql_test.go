@@ -319,7 +319,7 @@ func TestAddHostAddsAHost(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	err = conn.AddHost("some-host")
+	err = conn.AddHost(Hostname("some-host"))
 	if err != nil {
 		t.Logf("unexpected err adding host: %v", err)
 		t.Fail()
@@ -340,7 +340,7 @@ func TestAddHostAddsAHostToHostgroup(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	err = conn.AddHost("some-host", Hostgroup(1))
+	err = conn.AddHost(Hostname("some-host"), Hostgroup(1))
 	if err != nil {
 		t.Logf("unexpected err adding host: %v", err)
 		t.Fail()
@@ -361,7 +361,7 @@ func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	err = conn.AddHost("some-host", Hostgroup(1), Port(-1))
+	err = conn.AddHost(Hostname("some-host"), Hostgroup(1), Port(-1))
 	if err != ErrConfigBadPort {
 		t.Logf("did not receive err about bad port: %v", err)
 		t.Fail()
@@ -563,7 +563,7 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	}
 	t.Log("inserting into ProxySQL")
 	for hostname, hostgroup := range entries {
-		conn.AddHost(hostname, Hostgroup(hostgroup))
+		conn.AddHost(Hostname(hostname), Hostgroup(hostgroup))
 	}
 	err = conn.PersistChanges()
 	if err != nil {
@@ -611,7 +611,7 @@ func TestHostgroupErrorsOnScanError(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", Hostgroup(0))
+	conn.AddHost(Hostname("some-host"), Hostgroup(0))
 	scanErr := errors.New("error scanning rows")
 	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
 		return scanErr
@@ -634,7 +634,7 @@ func TestHostgroupReturnsEmptyMapOnNoRows(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", Hostgroup(0))
+	conn.AddHost(Hostname("some-host"), Hostgroup(0))
 	scanErr := errors.New("error scanning rows")
 	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
 		return scanErr
@@ -657,8 +657,8 @@ func TestHostgroupReturnsErrorOnRowsErr(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost("some-host", Hostgroup(0))
-	conn.AddHost("some-host2", Hostgroup(1))
+	conn.AddHost(Hostname("some-host"), Hostgroup(0))
+	conn.AddHost(Hostname("some-host2"), Hostgroup(1))
 	rowsError := errors.New("error in rows")
 	rowsErr = func(_ *sql.Rows) error {
 		return rowsError
@@ -686,7 +686,7 @@ func TestHostgroupHappyPath(t *testing.T) {
 		"writer":  0,
 	}
 	for k, v := range entries {
-		conn.AddHost(k, Hostgroup(v))
+		conn.AddHost(Hostname(k), Hostgroup(v))
 	}
 	hostgroup, err := conn.Hostgroup(0)
 	if err != nil {
