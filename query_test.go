@@ -158,3 +158,17 @@ func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildSpecifiedValues(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	queryString := buildSpecifiedValues(opts)
+	expected := "(1, 3, 'host')"
+	if expected != queryString {
+		t.Fatalf("did not receive expected string, %s != %s", expected, queryString)
+	}
+}

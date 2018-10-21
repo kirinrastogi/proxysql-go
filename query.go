@@ -3,6 +3,7 @@ package proxysql
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 )
 
 // the type of queries we want to build are as follows:
@@ -29,6 +30,32 @@ func buildSpecifiedColumns(specifiedFields []string) string {
 		buffer.WriteString(field)
 		// don't add a comma at the end if its last one
 		if pos != len(specifiedFields)-1 {
+			buffer.WriteString(", ")
+		}
+	}
+	return fmt.Sprintf("(%s)", buffer.String())
+}
+
+func valueAsString(opts *hostQuery, field string) string {
+	var stringValue string
+	r := reflect.ValueOf(opts.host)
+	val := reflect.Indirect(r).FieldByName(field)
+	if val.Type().Name() == "int" {
+		stringValue = fmt.Sprintf("%v", val)
+	} else if val.Type().Name() == "string" {
+		stringValue = fmt.Sprintf("'%s'", val.String())
+	}
+	return stringValue
+}
+
+// given a host and specifiedFields it builds a string like
+// (b, 'd', f)
+// where b, d, and f are values of type int, string, int
+func buildSpecifiedValues(opts *hostQuery) string {
+	var buffer bytes.Buffer
+	for pos, field := range opts.specifiedFields {
+		buffer.WriteString(valueAsString(opts, field))
+		if pos != len(opts.specifiedFields)-1 {
 			buffer.WriteString(", ")
 		}
 	}
@@ -73,9 +100,10 @@ func Hostname(h string) hostOpts {
 	}
 }
 
+// don't specify table, because its not included in the query
 func (q *hostQuery) Table(t string) *hostQuery {
 	q.table = t
-	return q.specifyField("table")
+	return q
 }
 
 func (q *hostQuery) Hostgroup(h int) *hostQuery {
