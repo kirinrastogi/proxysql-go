@@ -2,6 +2,7 @@ package proxysql
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -155,6 +156,56 @@ func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
 		expected := "(port, hostgroup_id)"
 		if expected != queryString {
 			t.Fatalf("specified fields returned were not expected: %s != %s", expected, queryString)
+		}
+	}
+}
+
+func TestBuildSpecifiedValues(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	queryString := buildSpecifiedValues(opts)
+	expected := "(1, 3, 'host')"
+	if expected != queryString {
+		t.Fatalf("did not receive expected string, %s != %s", expected, queryString)
+	}
+}
+
+func TestColumnsAndValuesHaveTheSameAmountOfCommas(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	values := buildSpecifiedValues(opts)
+	columns := buildSpecifiedColumns(opts.specifiedFields)
+	if len(strings.Split(values, " ")) != len(strings.Split(columns, " ")) {
+		t.Fatalf("val and cols for query building not same size: %s, %s", values, columns)
+	}
+}
+
+func TestBuildInsertQuery(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	q := buildInsertQuery(opts)
+	t.Logf("query: %s", q)
+	if !strings.Contains(q, "runtime_mysql_servers") {
+		t.Log("insert query built did use specified table runtime_mysql_servers")
+		t.Fail()
+	}
+
+	for _, field := range opts.specifiedFields {
+		if !strings.Contains(q, field) {
+			t.Logf("insert query built did not contain field %s", field)
+			t.Fail()
 		}
 	}
 }
