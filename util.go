@@ -11,7 +11,7 @@ var (
 	ErrConfigBadHostgroup  error = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
 	ErrConfigBadPort       error = errors.New("Bad port value, must be in [0, 65535]")
 	ErrConfigDuplicateSpec error = errors.New("Bad function call, a value was specified twice")
-	//ErrConfigNoHostname    error = errors.New("Bad hostname, must not be empty")
+	ErrConfigNoHostname    error = errors.New("Bad hostname, must not be empty")
 
 	validationFuncs []vOpts
 )
@@ -22,7 +22,6 @@ func init() {
 	validationFuncs = append(validationFuncs, validateHostgroup)
 	validationFuncs = append(validationFuncs, validatePort)
 	validationFuncs = append(validationFuncs, validateSpecifiedFields)
-	//validationFuncs = append(validationFuncs, validateHostname)
 }
 
 func validateTableOpts(opts *hostQuery) error {
@@ -62,12 +61,14 @@ func validateSpecifiedFields(opts *hostQuery) error {
 	return nil
 }
 
-/*func validateHostname(opts *hostQuery) error {
+// This is called by functions that need a hostname
+// it is not a default validation
+func validateHostname(opts *hostQuery) error {
 	if opts.host.hostname == "" {
 		return ErrConfigNoHostname
 	}
-  return nil
-}*/
+	return nil
+}
 
 func validateHostQuery(opts *hostQuery) error {
 	for _, validate := range validationFuncs {

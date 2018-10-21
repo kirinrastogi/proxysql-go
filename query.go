@@ -67,6 +67,12 @@ func Port(p int) hostOpts {
 	}
 }
 
+func Hostname(h string) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.Hostname(h)
+	}
+}
+
 func (q *hostQuery) Table(t string) *hostQuery {
 	q.table = t
 	return q.specifyField("table")
@@ -82,24 +88,25 @@ func (q *hostQuery) Port(p int) *hostQuery {
 	return q.specifyField("port")
 }
 
-// hostname is the only non default value
-// if its not specified query should return an error
+func (q *hostQuery) Hostname(h string) *hostQuery {
+	q.host.hostname = h
+	return q.specifyField("hostname")
+}
 
-// TODO decide on default hostname, should functions like AddHost set it themselves?
-// what about a func that doesn't use hostname? It should be specified also
+// hostname is the only non default value
 func defaultHost() *Host {
 	return &Host{
-		0,                // hostgroup_id
-		"empty_hostname", // hostname
-		3306,             // port
-		"ONLINE",         // status
-		1,                // weight
-		0,                // compression
-		1000,             // max_connections
-		0,                // max_replication_lag
-		0,                // use_ssl
-		0,                // max_latency_ms
-		"",               // comment
+		0,        // hostgroup_id
+		"",       // hostname
+		3306,     // port
+		"ONLINE", // status
+		1,        // weight
+		0,        // compression
+		1000,     // max_connections
+		0,        // max_replication_lag
+		0,        // use_ssl
+		0,        // max_latency_ms
+		"",       // comment
 	}
 }
 
@@ -122,5 +129,18 @@ func buildAndParseHostQuery(setters ...hostOpts) (*hostQuery, error) {
 		return nil, err
 	}
 
+	return opts, nil
+}
+
+// same as above but mandatory hostname
+func buildAndParseHostQueryWithHostname(setters ...hostOpts) (*hostQuery, error) {
+	opts, err := buildAndParseHostQuery(setters...)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = validateHostname(opts); err != nil {
+		return nil, err
+	}
 	return opts, nil
 }

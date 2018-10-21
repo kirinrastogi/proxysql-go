@@ -29,6 +29,14 @@ func TestPort(t *testing.T) {
 	}
 }
 
+func TestHostname(t *testing.T) {
+	expected := "hostname"
+	result := Hostname(expected)(defaultHostQuery()).host.hostname
+	if result != expected {
+		t.Fatalf("did not set hostname properly: %s", result)
+	}
+}
+
 func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 	opts, err := buildAndParseHostQuery()
 	if err != nil {
@@ -36,6 +44,39 @@ func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 		t.Fail()
 	}
 	if !reflect.DeepEqual(opts, defaultHostQuery()) {
+		t.Fatalf("parsed opts were not default: %v", opts)
+	}
+}
+
+func TestBuildAndParseEmptyHostQueryWithHostnameFailsHostnameValidation(t *testing.T) {
+	opts, err := buildAndParseHostQueryWithHostname()
+	if err != ErrConfigNoHostname {
+		t.Logf("did not get expected err: %v", err)
+		t.Fail()
+	}
+	if opts != nil {
+		t.Fatalf("did not receive non nil opts: %v", opts)
+	}
+}
+
+func TestBuildAndParseHostQueryWithHostnameFailsWhenParentFails(t *testing.T) {
+	opts, err := buildAndParseHostQueryWithHostname(Port(1), Port(2))
+	if err != ErrConfigDuplicateSpec {
+		t.Logf("did not get expected err: %v", err)
+		t.Fail()
+	}
+	if opts != nil {
+		t.Fatalf("did not receive non nil opts: %v", opts)
+	}
+}
+
+func TestBuildAndParseHostQueryWithHostnameSucceedsWithHostname(t *testing.T) {
+	opts, err := buildAndParseHostQueryWithHostname(Hostname("hostname"))
+	if err != nil {
+		t.Logf("unexpected err: %v", err)
+		t.Fail()
+	}
+	if !reflect.DeepEqual(opts, defaultHostQuery().Hostname("hostname")) {
 		t.Fatalf("parsed opts were not default: %v", opts)
 	}
 }
