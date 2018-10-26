@@ -28,19 +28,19 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestNewErrorsOnSqlOpenError(t *testing.T) {
-	open = func(driver string, dsn string) (*sql.DB, error) {
-		return nil, errors.New("Error creating connection pool")
-	}
-	defer resetOpen()
-	_, err := New("some-dsn")
-	if err == nil {
-		t.Log("New did not propogate err")
+func TestNewSetsDSN(t *testing.T) {
+	p, err := New("dsn")
+	if err != nil {
+		t.Logf("unexpected err: %v", err)
 		t.Fail()
+	}
+
+	if p.dsn != "dsn" {
+		t.Fatalf("dsn received was not expected: %s", p.dsn)
 	}
 }
 
-func TestNewWithDefaultsErrorsOnSqlOpenError(t *testing.T) {
+func TestNewErrorsOnSqlOpenError(t *testing.T) {
 	open = func(driver string, dsn string) (*sql.DB, error) {
 		return nil, errors.New("Error creating connection pool")
 	}
