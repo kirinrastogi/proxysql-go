@@ -7,9 +7,8 @@ import (
 )
 
 type ProxySQL struct {
-	dsn          string
-	conn         *sql.DB
-	defaultTable string
+	dsn  string
+	conn *sql.DB
 }
 
 type Host struct {
@@ -38,18 +37,6 @@ func (p *ProxySQL) Conn() *sql.DB {
 	return p.conn
 }
 
-func (p *ProxySQL) SetDefaultTable(t string) error {
-	if err := validateTable(t); err != nil {
-		return fmt.Errorf("table %s is not one of mysql_servers, runtime_mysql_servers", t)
-	}
-	p.defaultTable = t
-	return nil
-}
-
-func (p *ProxySQL) DefaultTable() string {
-	return p.defaultTable
-}
-
 func (p *ProxySQL) PersistChanges() error {
 	_, err := exec(p, "save mysql servers to disk")
 	if err != nil {
@@ -67,7 +54,7 @@ func (p *ProxySQL) PersistChanges() error {
 // if they want to delete a host with a specific hostname, only use that
 
 func (p *ProxySQL) HostExists(hostname string) (bool, error) {
-	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from %s where hostname = '%s'", p.defaultTable, hostname))
+	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from mysql_servers where hostname = '%s'", hostname))
 	defer hostRows.Close()
 	return hostRows.Next(), err
 }
@@ -89,14 +76,14 @@ func (p *ProxySQL) AddHost(opts ...hostOpts) error {
 // like HostExists
 
 func (p *ProxySQL) RemoveHost(hostname string) error {
-	_, err := exec(p, fmt.Sprintf("delete from %s where hostname = '%s'", p.defaultTable, hostname))
+	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
 	return err
 }
 
 // delete this
 
 func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("delete from %s where hostname = '%s' and hostgroup_id = %d", p.defaultTable, hostname, hostgroup))
+	_, err := p.conn.Exec(fmt.Sprintf("delete from mysql_servers where hostname = '%s' and hostgroup_id = %d", hostname, hostgroup))
 	return err
 }
 
@@ -104,7 +91,7 @@ func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error
 
 func (p *ProxySQL) All() (map[string]int, error) {
 	entries := make(map[string]int)
-	allQuery := fmt.Sprintf("select hostname, hostgroup_id from %s", p.defaultTable)
+	allQuery := "select hostname, hostgroup_id from mysql_servers"
 	rows, err := query(p, allQuery)
 	if err != nil {
 		return nil, err
@@ -131,7 +118,7 @@ func (p *ProxySQL) All() (map[string]int, error) {
 
 func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 	entries := make(map[string]int)
-	readQuery := fmt.Sprintf("select hostname, hostgroup_id from %s where hostgroup_id = %d", p.defaultTable, hostgroup)
+	readQuery := fmt.Sprintf("select hostname, hostgroup_id from mysql_servers where hostgroup_id = %d", hostgroup)
 	rows, err := query(p, readQuery)
 	if err != nil {
 		return nil, err
@@ -160,7 +147,7 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 
 func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
 	var numInstances int
-	countQuery := fmt.Sprintf("select count(*) from %s where hostgroup_id = %d", p.defaultTable, hostgroup)
+	countQuery := fmt.Sprintf("select count(*) from mysql_servers where hostgroup_id = %d", hostgroup)
 	err := scanRow(p.conn.QueryRow(countQuery), &numInstances)
 	if err != nil {
 		return -1, err

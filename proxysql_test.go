@@ -28,36 +28,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestNewSetsDefaultTable(t *testing.T) {
-	conn, err := New("some-dsn")
+func TestNewSetsDSN(t *testing.T) {
+	p, err := New("dsn")
 	if err != nil {
-		t.Fatal(err)
-	}
-	if conn.defaultTable != "mysql_servers" {
-		t.Logf("Default ProxySQL table was not mysql_servers: %s", conn.defaultTable)
+		t.Logf("unexpected err: %v", err)
 		t.Fail()
 	}
-}
 
-func TestNewWithDefaultTableSetsTable(t *testing.T) {
-	conn, err := New("some-dsn", DefaultTable("runtime_mysql_servers"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if conn.defaultTable != "runtime_mysql_servers" {
-		t.Log("default hostgroups were not 0 and 1")
-		t.Fail()
-	}
-}
-
-func TestNewWithBadDefaultTableReturnsError(t *testing.T) {
-	conn, err := New("some-dsn", DefaultTable("bad table"))
-	if err != ErrConfigBadTable {
-		t.Logf("Did not receive expected error when setting bad default table: %v", err)
-		t.Fail()
-	}
-	if conn != nil {
-		t.Fatalf("Did not receive nil conn on error")
+	if p.dsn != "dsn" {
+		t.Fatalf("dsn received was not expected: %s", p.dsn)
 	}
 }
 
@@ -70,51 +49,6 @@ func TestNewErrorsOnSqlOpenError(t *testing.T) {
 	if err == nil {
 		t.Log("New did not propogate err")
 		t.Fail()
-	}
-}
-
-func TestNewWithDefaultsErrorsOnSqlOpenError(t *testing.T) {
-	open = func(driver string, dsn string) (*sql.DB, error) {
-		return nil, errors.New("Error creating connection pool")
-	}
-	defer resetOpen()
-	_, err := New("some-dsn")
-	if err == nil {
-		t.Log("New did not propogate err")
-		t.Fail()
-	}
-}
-
-func TestSetDefaultTableSetsTheTable(t *testing.T) {
-	conn, err := New("some-dsn")
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := "runtime_mysql_servers"
-	conn.SetDefaultTable(expected)
-	if conn.defaultTable != expected {
-		t.Fatalf("table was not set correctly to %s", expected)
-	}
-}
-
-func TestDefaultTableGetsTheDefaultTable(t *testing.T) {
-	expected := "runtime_mysql_servers"
-	conn, err := New("some-dsn", DefaultTable(expected))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if conn.DefaultTable() != expected {
-		t.Fatalf("Table did not return table that was set: %s", expected)
-	}
-}
-
-func TestSetDefaultTableErrorsOnBadTableName(t *testing.T) {
-	conn, err := New("some-dsn")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if conn.SetDefaultTable("some table") == nil {
-		t.Fatal("set table did not error with bad table name passed")
 	}
 }
 
@@ -522,30 +456,6 @@ func TestSizeOfHostgroupErrorsOnQueryError(t *testing.T) {
 	}
 }
 
-func TestTableUsedIsTheOneSet(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetExec()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")), DefaultTable("runtime_mysql_servers"))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	var queryBuilt string
-	exec = func(p *ProxySQL, query string, _ ...interface{}) (sql.Result, error) {
-		queryBuilt = query
-		return nil, nil
-	}
-	err = conn.RemoveHost("some-host")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if queryBuilt != "delete from runtime_mysql_servers where hostname = 'some-host'" {
-		t.Logf("query built is not the expected one: %s", queryBuilt)
-		t.Fail()
-	}
-}
-
 func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
@@ -569,7 +479,7 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not persist changes: %v", err)
 	}
-	runtime_conn, err := New(containerAddr, DefaultTable("runtime_mysql_servers"))
+	runtime_conn, err := New(containerAddr)
 	runtime_servers, err := runtime_conn.All()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
