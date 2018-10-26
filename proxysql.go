@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"sync"
 )
 
 type ProxySQL struct {
@@ -25,6 +26,8 @@ type Host struct {
 	comment             string
 }
 
+var mut sync.RWMutex
+
 func (p *ProxySQL) Ping() error {
 	return p.conn.Ping()
 }
@@ -38,6 +41,8 @@ func (p *ProxySQL) Conn() *sql.DB {
 }
 
 func (p *ProxySQL) PersistChanges() error {
+	mut.Lock()
+	defer mut.Unlock()
 	_, err := exec(p, "save mysql servers to disk")
 	if err != nil {
 		return err
@@ -54,6 +59,8 @@ func (p *ProxySQL) PersistChanges() error {
 // if they want to delete a host with a specific hostname, only use that
 
 func (p *ProxySQL) HostExists(hostname string) (bool, error) {
+	mut.RLock()
+	defer mut.RUnlock()
 	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from mysql_servers where hostname = '%s'", hostname))
 	defer hostRows.Close()
 	return hostRows.Next(), err
@@ -72,24 +79,28 @@ func (p *ProxySQL) AddHost(opts ...hostOpts) error {
 	return err
 }
 
+// TODO func (p *ProxySQL) AddHosts(hosts ...Host) error {
+// for when Hosts are built in memory, and then add all at once
+// how to roll back?
+
+// TODO func (p *ProxySQL) Clear() error {
+// Convenience function, clears proxysql
+
 // Remove host with values specified
 // like HostExists
 
 func (p *ProxySQL) RemoveHost(hostname string) error {
+	mut.Lock()
+	defer mut.Unlock()
 	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
-	return err
-}
-
-// delete this
-
-func (p *ProxySQL) RemoveHostFromHostgroup(hostname string, hostgroup int) error {
-	_, err := p.conn.Exec(fmt.Sprintf("delete from mysql_servers where hostname = '%s' and hostgroup_id = %d", hostname, hostgroup))
 	return err
 }
 
 // instead of string: int, it should be slice of Host s
 
 func (p *ProxySQL) All() (map[string]int, error) {
+	mut.RLock()
+	defer mut.RUnlock()
 	entries := make(map[string]int)
 	allQuery := "select hostname, hostgroup_id from mysql_servers"
 	rows, err := query(p, allQuery)
@@ -117,6 +128,8 @@ func (p *ProxySQL) All() (map[string]int, error) {
 // maybe call this Like(), and return a slice of Host s that are Like the provided configuration
 
 func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
+	mut.RLock()
+	defer mut.RUnlock()
 	entries := make(map[string]int)
 	readQuery := fmt.Sprintf("select hostname, hostgroup_id from mysql_servers where hostgroup_id = %d", hostgroup)
 	rows, err := query(p, readQuery)
@@ -146,6 +159,8 @@ func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
 // and only query specifically with provided values
 
 func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
+	mut.RLock()
+	defer mut.RUnlock()
 	var numInstances int
 	countQuery := fmt.Sprintf("select count(*) from mysql_servers where hostgroup_id = %d", hostgroup)
 	err := scanRow(p.conn.QueryRow(countQuery), &numInstances)
