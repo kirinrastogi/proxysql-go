@@ -98,11 +98,11 @@ func (p *ProxySQL) RemoveHost(hostname string) error {
 
 // instead of string: int, it should be slice of Host s
 
-func (p *ProxySQL) All() (map[string]int, error) {
+func (p *ProxySQL) All() ([]Host, error) {
 	mut.RLock()
 	defer mut.RUnlock()
-	entries := make(map[string]int)
-	allQuery := "select hostname, hostgroup_id from mysql_servers"
+	entries := make([]Host, 0)
+	allQuery := "select * from mysql_servers"
 	rows, err := query(p, allQuery)
 	if err != nil {
 		return nil, err
@@ -110,14 +110,24 @@ func (p *ProxySQL) All() (map[string]int, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			hostname  string
-			hostgroup int
+			hostname            string
+			hostgroup_id        int
+			port                int
+			status              string
+			weight              int
+			compression         int
+			max_connections     int
+			max_replication_lag int
+			use_ssl             int
+			max_latency_ms      int
+			comment             string
 		)
-		err := scanRows(rows, &hostname, &hostgroup)
+		err := scanRows(rows, &hostgroup_id, &hostname, &port, &status, &weight, &compression, &max_connections, &max_replication_lag, &use_ssl, &max_latency_ms, &comment)
 		if err != nil {
 			return nil, err
 		}
-		entries[hostname] = hostgroup
+		host := Host{hostname, hostgroup_id, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment}
+		append(entries, host)
 	}
 	if rowsErr(rows) != nil && rowsErr(rows) != sql.ErrNoRows {
 		return nil, rowsErr(rows)
