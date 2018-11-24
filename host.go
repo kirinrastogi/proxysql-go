@@ -28,6 +28,11 @@ func (h *Host) Port(p int) *Host {
 	return h
 }
 
+func (h *Host) Hostgroup(hg int) *Host {
+	h.hostgroup_id = hg
+	return h
+}
+
 func (h *Host) values() string {
 	return fmt.Sprintf("(%d, '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", h.hostgroup_id, h.hostname, h.port, h.status, h.weight, h.compression, h.max_connections, h.max_replication_lag, h.use_ssl, h.max_latency_ms, h.comment)
 }

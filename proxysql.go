@@ -93,11 +93,16 @@ func (p *ProxySQL) RemoveHost(hostname string) error {
 
 // instead of string: int, it should be slice of Host s
 
-func (p *ProxySQL) All() ([]*Host, error) {
+func (p *ProxySQL) All(opts ...hostOpts) ([]*Host, error) {
+	// this is only used to get the table
+	hostq, err := buildAndParseHostQuery(opts...)
+	if err != nil {
+		return nil, err
+	}
 	mut.RLock()
 	defer mut.RUnlock()
 	entries := make([]*Host, 0)
-	allQuery := "select * from mysql_servers"
+	allQuery := fmt.Sprintf("select * from %s", hostq.table)
 	rows, err := query(p, allQuery)
 	if err != nil {
 		return nil, err

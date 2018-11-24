@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 )
@@ -425,28 +426,33 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 		t.Fail()
 	}
 	// make entries map compare to runtime_servers.All()
-	entries := map[string]int{
-		"reader1": 1,
-		"reader2": 1,
-		"writer":  0,
+	entries := []*Host{
+		defaultHost().Hostname("reader1").Hostgroup(1),
+		defaultHost().Hostname("reader2").Hostgroup(1),
+		defaultHost().Hostname("writer").Hostgroup(0),
 	}
 	t.Log("inserting into ProxySQL")
-	for hostname, hostgroup := range entries {
-		conn.AddHost(Hostname(hostname), Hostgroup(hostgroup))
-	}
+	conn.AddHosts(entries...)
 	err = conn.PersistChanges()
 	if err != nil {
 		t.Fatalf("could not persist changes: %v", err)
 	}
-	runtime_conn, err := New(containerAddr)
-	runtime_servers, err := runtime_conn.All()
+	runtime_servers, err := conn.All(Table("runtime_mysql_servers"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(entries, runtime_servers) {
-		t.Log("changes were not persisted from mysql_servers to runtime_mysql_servers")
-		t.Logf("table %v != %v", entries, runtime_servers)
-		t.Fail()
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].hostname < entries[j].hostname
+	})
+	sort.Slice(runtime_servers, func(i, j int) bool {
+		return runtime_servers[i].hostname < runtime_servers[j].hostname
+	})
+	for i := 0; i < len(entries); i++ {
+		if !reflect.DeepEqual(entries[i], runtime_servers[i]) {
+			t.Log("changes were not persisted from mysql_servers to runtime_mysql_servers")
+			t.Logf("table %v != %v", entries[i], runtime_servers[i])
+			t.Fail()
+		}
 	}
 }
 
