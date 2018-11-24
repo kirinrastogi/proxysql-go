@@ -12,20 +12,6 @@ type ProxySQL struct {
 	conn *sql.DB
 }
 
-type Host struct {
-	hostgroup_id        int
-	hostname            string
-	port                int
-	status              string
-	weight              int
-	compression         int
-	max_connections     int
-	max_replication_lag int
-	use_ssl             int
-	max_latency_ms      int
-	comment             string
-}
-
 var mut sync.RWMutex
 
 func (p *ProxySQL) Ping() error {
@@ -79,12 +65,21 @@ func (p *ProxySQL) AddHost(opts ...hostOpts) error {
 	return err
 }
 
-// TODO func (p *ProxySQL) AddHosts(hosts ...Host) error {
-// for when Hosts are built in memory, and then add all at once
-// how to roll back?
+func (p *ProxySQL) AddHosts(hosts ...*Host) error {
+	for _, host := range hosts {
+		insertQuery := fmt.Sprintf("insert into mysql_servers %s values %s", host.columns(), host.values())
+		_, err := exec(p, insertQuery)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-// TODO func (p *ProxySQL) Clear() error {
-// Convenience function, clears proxysql
+func (p *ProxySQL) Clear() error {
+	_, err := exec(p, "delete from mysql_servers")
+	return err
+}
 
 // Remove host with values specified
 // like HostExists
@@ -98,10 +93,10 @@ func (p *ProxySQL) RemoveHost(hostname string) error {
 
 // instead of string: int, it should be slice of Host s
 
-func (p *ProxySQL) All() ([]Host, error) {
+func (p *ProxySQL) All() ([]*Host, error) {
 	mut.RLock()
 	defer mut.RUnlock()
-	entries := make([]Host, 0)
+	entries := make([]*Host, 0)
 	allQuery := "select * from mysql_servers"
 	rows, err := query(p, allQuery)
 	if err != nil {
@@ -110,8 +105,8 @@ func (p *ProxySQL) All() ([]Host, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			hostname            string
 			hostgroup_id        int
+			hostname            string
 			port                int
 			status              string
 			weight              int
@@ -126,8 +121,8 @@ func (p *ProxySQL) All() ([]Host, error) {
 		if err != nil {
 			return nil, err
 		}
-		host := Host{hostname, hostgroup_id, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment}
-		append(entries, host)
+		host := &Host{hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment}
+		entries = append(entries, host)
 	}
 	if rowsErr(rows) != nil && rowsErr(rows) != sql.ErrNoRows {
 		return nil, rowsErr(rows)

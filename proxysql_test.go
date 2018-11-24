@@ -134,32 +134,21 @@ func TestAllReturnsAllEntries(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
-	insertedEntries := map[string]int{
-		"writer1": 0,
-		"reader1": 1,
-		"reader2": 1,
+	insertedEntries := []*Host{
+		defaultHost().Hostname("hostname1"),
+		defaultHost().Hostname("hostname2").Port(3307),
+		defaultHost().Hostname("hostname3").Port(3305),
 	}
-	for hostname, hostgroup := range insertedEntries {
-		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', 1000)", hostgroup, hostname)
-		conn.Conn().Exec(insertQuery)
-	}
+	err = conn.AddHosts(insertedEntries...)
 	entries, err := conn.All()
 	if err != nil {
 		t.Fatalf("err while getting all entries: %v", err)
 	}
-	for hostname, hostgroup := range insertedEntries {
-		// if dne, fatalf
-		// else, delete entry from entries
-		returnedHostgroup, ok := entries[hostname]
-		if !ok {
-			t.Logf("entries did not contain key for %s. map: %v", hostname, entries)
-			t.Fail()
+	// assert the two arrays entries and insertedEntries are deep equal
+	for i := 0; i < len(insertedEntries); i++ {
+		if !reflect.DeepEqual(insertedEntries[i], entries[i]) {
+			t.Fatalf("returned hosts not equal to inserted hosts: %v != %v", insertedEntries[i], entries[i])
 		}
-		if returnedHostgroup != hostgroup {
-			t.Logf("hostgroup returned not equal to hostgroup inserted %d != %d for map %v", returnedHostgroup, hostgroup, entries)
-			t.Fail()
-		}
-		delete(entries, hostname)
 	}
 }
 
