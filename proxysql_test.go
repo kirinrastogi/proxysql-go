@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 )
@@ -134,32 +135,21 @@ func TestAllReturnsAllEntries(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 	t.Log("inserting into ProxySQL")
-	insertedEntries := map[string]int{
-		"writer1": 0,
-		"reader1": 1,
-		"reader2": 1,
+	insertedEntries := []*Host{
+		defaultHost().Hostname("hostname1"),
+		defaultHost().Hostname("hostname2").Port(3307),
+		defaultHost().Hostname("hostname3").Port(3305),
 	}
-	for hostname, hostgroup := range insertedEntries {
-		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (%d, '%s', 1000)", hostgroup, hostname)
-		conn.Conn().Exec(insertQuery)
-	}
+	err = conn.AddHosts(insertedEntries...)
 	entries, err := conn.All()
 	if err != nil {
 		t.Fatalf("err while getting all entries: %v", err)
 	}
-	for hostname, hostgroup := range insertedEntries {
-		// if dne, fatalf
-		// else, delete entry from entries
-		returnedHostgroup, ok := entries[hostname]
-		if !ok {
-			t.Logf("entries did not contain key for %s. map: %v", hostname, entries)
-			t.Fail()
+	// assert the two arrays entries and insertedEntries are deep equal
+	for i := 0; i < len(insertedEntries); i++ {
+		if !reflect.DeepEqual(insertedEntries[i], entries[i]) {
+			t.Fatalf("returned hosts not equal to inserted hosts: %v != %v", insertedEntries[i], entries[i])
 		}
-		if returnedHostgroup != hostgroup {
-			t.Logf("hostgroup returned not equal to hostgroup inserted %d != %d for map %v", returnedHostgroup, hostgroup, entries)
-			t.Fail()
-		}
-		delete(entries, hostname)
 	}
 }
 
@@ -177,6 +167,23 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 	if len(entries) != 0 {
 		t.Logf("entries is nonzero for empty table: %v", entries)
 		t.Fail()
+	}
+}
+
+func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	entries, err := conn.All(Table("not a real table"))
+	if err == nil {
+		t.Fatalf("did not get error when specifying bad table")
+	}
+
+	if entries != nil {
+		t.Fatalf("received non nil list of hosts on error: %v", entries)
 	}
 }
 
@@ -299,6 +306,39 @@ func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
 	if err != ErrConfigBadPort {
 		t.Logf("did not receive err about bad port: %v", err)
 		t.Fail()
+	}
+}
+
+func TestAddHostsReturnsErrorOnError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	mockErr := errors.New("mock")
+	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		return nil, mockErr
+	}
+	err = conn.AddHosts(defaultHost())
+	if err != mockErr {
+		t.Fatalf("did not get expected error: %v", err)
+	}
+}
+
+func TestClearClearsProxySQL(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost(Hostname("h1"))
+	conn.Clear()
+	entries, _ := conn.All()
+	if len(entries) != 0 {
+		t.Fatalf("entries was not empty after clearing: %v", entries)
 	}
 }
 
@@ -436,28 +476,33 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 		t.Fail()
 	}
 	// make entries map compare to runtime_servers.All()
-	entries := map[string]int{
-		"reader1": 1,
-		"reader2": 1,
-		"writer":  0,
+	entries := []*Host{
+		defaultHost().Hostname("reader1").Hostgroup(1),
+		defaultHost().Hostname("reader2").Hostgroup(1),
+		defaultHost().Hostname("writer").Hostgroup(0),
 	}
 	t.Log("inserting into ProxySQL")
-	for hostname, hostgroup := range entries {
-		conn.AddHost(Hostname(hostname), Hostgroup(hostgroup))
-	}
+	conn.AddHosts(entries...)
 	err = conn.PersistChanges()
 	if err != nil {
 		t.Fatalf("could not persist changes: %v", err)
 	}
-	runtime_conn, err := New(containerAddr)
-	runtime_servers, err := runtime_conn.All()
+	runtime_servers, err := conn.All(Table("runtime_mysql_servers"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(entries, runtime_servers) {
-		t.Log("changes were not persisted from mysql_servers to runtime_mysql_servers")
-		t.Logf("table %v != %v", entries, runtime_servers)
-		t.Fail()
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].hostname < entries[j].hostname
+	})
+	sort.Slice(runtime_servers, func(i, j int) bool {
+		return runtime_servers[i].hostname < runtime_servers[j].hostname
+	})
+	for i := 0; i < len(entries); i++ {
+		if !reflect.DeepEqual(entries[i], runtime_servers[i]) {
+			t.Log("changes were not persisted from mysql_servers to runtime_mysql_servers")
+			t.Logf("table %v != %v", entries[i], runtime_servers[i])
+			t.Fail()
+		}
 	}
 }
 
