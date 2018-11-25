@@ -292,6 +292,24 @@ func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
 	}
 }
 
+func TestAddHostsReturnsErrorOnError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetExec()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	mockErr := errors.New("mock")
+	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		return nil, mockErr
+	}
+	err = conn.AddHosts(defaultHost())
+	if err != mockErr {
+		t.Fatalf("did not get expected error: %v", err)
+	}
+}
+
 func TestRemoveHostRemovesAHost(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
