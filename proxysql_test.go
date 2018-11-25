@@ -170,6 +170,23 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 	}
 }
 
+func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	entries, err := conn.All(Table("not a real table"))
+	if err == nil {
+		t.Fatalf("did not get error when specifying bad table")
+	}
+
+	if entries != nil {
+		t.Fatalf("received non nil list of hosts on error: %v", entries)
+	}
+}
+
 func TestAllErrorsOnQueryError(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	defer resetQuery()
@@ -307,6 +324,21 @@ func TestAddHostsReturnsErrorOnError(t *testing.T) {
 	err = conn.AddHosts(defaultHost())
 	if err != mockErr {
 		t.Fatalf("did not get expected error: %v", err)
+	}
+}
+
+func TestClearClearsProxySQL(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost(Hostname("h1"))
+	conn.Clear()
+	entries, _ := conn.All()
+	if len(entries) != 0 {
+		t.Fatalf("entries was not empty after clearing: %v", entries)
 	}
 }
 
