@@ -327,7 +327,7 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatalf("err setting up test: %v", err)
 	}
 
-	if err := conn.RemoveHost("some-host"); err != nil {
+	if err := conn.RemoveHost(Hostname("some-host")); err != nil {
 		t.Fatalf("err removing host %v", err)
 	}
 

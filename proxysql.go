@@ -75,23 +75,46 @@ func (p *ProxySQL) Clear() error {
 	return err
 }
 
-// Remove host with values specified
+// Remove a host with values specified
 // like AddHost
+// it is recommended to only call this with RemoveHost(Hostname("a-hostname"))
 
-func (p *ProxySQL) RemoveHost(hostname string) error {
+func (p *ProxySQL) RemoveHost(opts ...hostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
-	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
+	hostq, err := buildAndParseHostQuery(opts...)
+	if err != nil {
+		return err
+	}
+	// build a query with these options
+	_, err = exec(p, buildDeleteQueryLimit(hostq))
 	return err
 }
 
-// remove hosts that match these host values exactly? or only their hostnames?
-
-func (p *ProxySQL) RemoveHosts(hostname string) error {
+// Remove all hosts that match the opts
+func (p *ProxySQL) RemoveHostsLike(opts ...hostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
-	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
+	hostq, err := buildAndParseHostQuery(opts...)
+	if err != nil {
+		return err
+	}
+	// build a query with these options
+	_, err = exec(p, buildDeleteQuery(hostq))
 	return err
+}
+
+// remove hosts that match these hosts exactly
+func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
+	mut.Lock()
+	defer mut.Unlock()
+	for _, host := range hosts {
+		_, err := exec(p, fmt.Sprintf("delete from mysql_servers where %s", host.where()))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // HostExists with values specified ...HostOpts

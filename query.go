@@ -85,6 +85,16 @@ func buildSelectQuery(opts *hostQuery) string {
 	return fmt.Sprintf("select * from %s where %s", opts.table, buildSpecifiedValuesWhere(opts))
 }
 
+// builds a delete query with limit 1
+func buildDeleteQueryLimit(opts *hostQuery) string {
+	return fmt.Sprintf("delete from %s where %s limit 1", opts.table, buildSpecifiedValuesWhere(opts))
+}
+
+// builds a delete query
+func buildDeleteQuery(opts *hostQuery) string {
+	return fmt.Sprintf("delete from %s where %s", opts.table, buildSpecifiedValuesWhere(opts))
+}
+
 // use this when building queries, include the value if it is specified.
 // if this is the table, use that too, as the specified table trumps the default one
 func (opts *hostQuery) specifyField(field string) *hostQuery {
