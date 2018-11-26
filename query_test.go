@@ -209,3 +209,25 @@ func TestBuildInsertQuery(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildSelectQuery(t *testing.T) {
+	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	if err != nil {
+		t.Logf("unexpected parse error: %v", err)
+		t.Fail()
+	}
+
+	q := buildSelectQuery(opts)
+	t.Logf("query: %s", q)
+	if !strings.Contains(q, "runtime_mysql_servers") {
+		t.Log("select query built did use specified table runtime_mysql_servers")
+		t.Fail()
+	}
+
+	for _, field := range opts.specifiedFields {
+		if !strings.Contains(q, field) {
+			t.Logf("select query built did not contain field %s", field)
+			t.Fail()
+		}
+	}
+}
