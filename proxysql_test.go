@@ -322,12 +322,13 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	err = conn.AddHost(Hostname("some-host"), Hostgroup(0))
+	host := defaultHost().Hostname("some-host").Hostgroup(0)
+	err = conn.AddHosts(host)
 	if err != nil {
 		t.Fatalf("err setting up test: %v", err)
 	}
 
-	if err := conn.RemoveHost(defaultHost().Hostname("some-host").Hostgroup(0)); err != nil {
+	if err := conn.RemoveHost(host); err != nil {
 		t.Fatalf("err removing host %v", err)
 	}
 
@@ -340,6 +341,27 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Logf("%v", hosts)
 		t.Log("host still existed after removal")
 		t.Fail()
+	}
+}
+
+func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
+	defer resetExec()
+	conn, err := New("dsn")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err = conn.RemoveHostsLike(Hostgroup(-1))
+	if err != ErrConfigBadHostgroup {
+		t.Fatalf("did not receive validation error on bad param: %v", err)
+	}
+
+	mockErr := errors.New("mock")
+	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
+		return nil, mockErr
+	}
+	err = conn.RemoveHostsLike(Hostgroup(1))
+	if err != mockErr {
+		t.Fatalf("did not propogate execution error: %v", err)
 	}
 }
 
