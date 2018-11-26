@@ -62,8 +62,27 @@ func buildSpecifiedValues(opts *hostQuery) string {
 	return fmt.Sprintf("(%s)", buffer.String())
 }
 
+// given a host and specifiedFields, build a string like
+// a1 = b1 and a2 = b2
+func buildSpecifiedValuesWhere(opts *hostQuery) string {
+	var buffer bytes.Buffer
+	for pos, field := range opts.specifiedFields {
+		buffer.WriteString(fmt.Sprintf("%s = ", field))
+		buffer.WriteString(valueAsString(opts, field))
+		if pos != len(opts.specifiedFields)-1 {
+			buffer.WriteString(" and ")
+		}
+	}
+	return buffer.String()
+}
+
 func buildInsertQuery(opts *hostQuery) string {
 	return fmt.Sprintf("insert into %s %s values %s", opts.table, buildSpecifiedColumns(opts.specifiedFields), buildSpecifiedValues(opts))
+}
+
+// builds a select query that only takes in to account the specified columns
+func buildSelectQuery(opts *hostQuery) string {
+	return fmt.Sprintf("select * from %s where %s", opts.table, buildSpecifiedValuesWhere(opts))
 }
 
 // use this when building queries, include the value if it is specified.
