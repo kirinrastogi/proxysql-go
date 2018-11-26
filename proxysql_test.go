@@ -403,6 +403,19 @@ func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
 	}
 }
 
+func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
+	defer resetExec()
+	conn, _ := New("dsn")
+	mockErr := errors.New("mock")
+	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
+		return nil, mockErr
+	}
+
+	if err := conn.RemoveHosts(defaultHost()); err != mockErr {
+		t.Fatalf("unexpected error from RemoveHosts, did not propogate: %v", err)
+	}
+}
+
 func TestHostsLike(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
