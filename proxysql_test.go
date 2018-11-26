@@ -99,34 +99,6 @@ func TestCloseClosesConnectionToProxySQL(t *testing.T) {
 	}
 }
 
-func TestHostExistsReturnsTrueForExistentHost(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	t.Log("inserting into ProxySQL")
-	conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'readerHost', 1000)")
-	if exists, _ := conn.HostExists("readerHost"); !exists {
-		t.Log("readerHost was inserted but not read")
-		t.Fail()
-	}
-}
-
-func TestHostExistsReturnsFalseForNonExistentHost(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	if exists, _ := conn.HostExists("readerHost"); exists {
-		t.Log("readerHost was not inserted but read")
-		t.Fail()
-	}
-}
-
 func TestAllReturnsAllEntries(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
@@ -359,12 +331,13 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatalf("err removing host %v", err)
 	}
 
-	exists, err := conn.HostExists("some-host")
+	hosts, err := conn.HostsLike(Hostname("some-host"))
 	if err != nil {
 		t.Fatalf("err checking existence of host: %v", err)
 	}
 
-	if exists {
+	if len(hosts) != 0 {
+		t.Logf("%v", hosts)
 		t.Log("host still existed after removal")
 		t.Fail()
 	}

@@ -66,6 +66,11 @@ func buildInsertQuery(opts *hostQuery) string {
 	return fmt.Sprintf("insert into %s %s values %s", opts.table, buildSpecifiedColumns(opts.specifiedFields), buildSpecifiedValues(opts))
 }
 
+// builds a select query that only takes in to account the specified columns
+func buildSelectQuery(opts *hostQuery) string {
+	return fmt.Sprintf("select %s from %s where %s", buildSpecifiedColumns(opts.specifiedFields), opts.table, buildSpecifiedValues(opts))
+}
+
 // use this when building queries, include the value if it is specified.
 // if this is the table, use that too, as the specified table trumps the default one
 func (opts *hostQuery) specifyField(field string) *hostQuery {

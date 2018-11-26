@@ -40,22 +40,12 @@ func (p *ProxySQL) PersistChanges() error {
 	return nil
 }
 
-// HostExists with values specified ...HostOpts
-// only include specified values in query
-// if they want to delete a host with a specific hostname, only use that
-
-func (p *ProxySQL) HostExists(hostname string) (bool, error) {
-	mut.RLock()
-	defer mut.RUnlock()
-	hostRows, err := p.conn.Query(fmt.Sprintf("select hostname from mysql_servers where hostname = '%s'", hostname))
-	defer hostRows.Close()
-	return hostRows.Next(), err
-}
-
 // Add host with values specified
 // use default Host, and set with ...HostOpts
 
 func (p *ProxySQL) AddHost(opts ...hostOpts) error {
+	mut.Lock()
+	defer mut.Unlock()
 	hostq, err := buildAndParseHostQueryWithHostname(opts...)
 	if err != nil {
 		return err
@@ -66,6 +56,8 @@ func (p *ProxySQL) AddHost(opts ...hostOpts) error {
 }
 
 func (p *ProxySQL) AddHosts(hosts ...*Host) error {
+	mut.Lock()
+	defer mut.Unlock()
 	for _, host := range hosts {
 		insertQuery := fmt.Sprintf("insert into mysql_servers %s values %s", host.columns(), host.values())
 		_, err := exec(p, insertQuery)
@@ -77,6 +69,8 @@ func (p *ProxySQL) AddHosts(hosts ...*Host) error {
 }
 
 func (p *ProxySQL) Clear() error {
+	mut.Lock()
+	defer mut.Unlock()
 	_, err := exec(p, "delete from mysql_servers")
 	return err
 }
@@ -89,6 +83,48 @@ func (p *ProxySQL) RemoveHost(hostname string) error {
 	defer mut.Unlock()
 	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
 	return err
+}
+
+// HostExists with values specified ...HostOpts
+// only include specified values in query
+// if they want to delete a host with a specific hostname, only use that
+
+func (p *ProxySQL) HostsLike(opts ...hostOpts) ([]*Host, error) {
+	mut.RLock()
+	defer mut.RUnlock()
+	hostq, err := buildAndParseHostQuery(opts...)
+	if err != nil {
+		return nil, err
+	}
+	// run query built from these opts
+	rows, err := query(p, buildSelectQuery(hostq))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	entries := make([]*Host, 0)
+	for rows.Next() {
+		var (
+			hostgroup_id        int
+			hostname            string
+			port                int
+			status              string
+			weight              int
+			compression         int
+			max_connections     int
+			max_replication_lag int
+			use_ssl             int
+			max_latency_ms      int
+			comment             string
+		)
+		err := scanRows(rows, &hostgroup_id, &hostname, &port, &status, &weight, &compression, &max_connections, &max_replication_lag, &use_ssl, &max_latency_ms, &comment)
+		if err != nil {
+			return nil, err
+		}
+		host := &Host{hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment}
+		entries = append(entries, host)
+	}
+	return entries, nil
 }
 
 // instead of string: int, it should be slice of Host s
