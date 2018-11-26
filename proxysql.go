@@ -76,9 +76,18 @@ func (p *ProxySQL) Clear() error {
 }
 
 // Remove host with values specified
-// like HostExists
+// like AddHost
 
 func (p *ProxySQL) RemoveHost(hostname string) error {
+	mut.Lock()
+	defer mut.Unlock()
+	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
+	return err
+}
+
+// remove hosts that match these host values exactly? or only their hostnames?
+
+func (p *ProxySQL) RemoveHosts(hostname string) error {
 	mut.Lock()
 	defer mut.Unlock()
 	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where hostname = '%s'", hostname))
@@ -169,51 +178,6 @@ func (p *ProxySQL) All(opts ...hostOpts) ([]*Host, error) {
 		return nil, rowsErr(rows)
 	}
 	return entries, nil
-}
-
-// maybe call this Like(), and return a slice of Host s that are Like the provided configuration
-
-func (p *ProxySQL) Hostgroup(hostgroup int) (map[string]int, error) {
-	mut.RLock()
-	defer mut.RUnlock()
-	entries := make(map[string]int)
-	readQuery := fmt.Sprintf("select hostname, hostgroup_id from mysql_servers where hostgroup_id = %d", hostgroup)
-	rows, err := query(p, readQuery)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var (
-			hostname  string
-			hostgroup int
-		)
-		err := scanRows(rows, &hostname, &hostgroup)
-		if err != nil {
-			return nil, err
-		}
-		err = rowsErr(rows)
-		if err != nil {
-			return nil, err
-		}
-		entries[hostname] = hostgroup
-	}
-	return entries, nil
-}
-
-// call this AmountLike or something similar?
-// and only query specifically with provided values
-
-func (p *ProxySQL) SizeOfHostgroup(hostgroup int) (int, error) {
-	mut.RLock()
-	defer mut.RUnlock()
-	var numInstances int
-	countQuery := fmt.Sprintf("select count(*) from mysql_servers where hostgroup_id = %d", hostgroup)
-	err := scanRow(p.conn.QueryRow(countQuery), &numInstances)
-	if err != nil {
-		return -1, err
-	}
-	return numInstances, nil
 }
 
 // TODO put these in an init() boi, so its easy to reset in tests
