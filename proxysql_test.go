@@ -322,12 +322,13 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'some-host', 1000)")
+	host := defaultHost().Hostname("some-host").Hostgroup(0)
+	err = conn.AddHosts(host)
 	if err != nil {
 		t.Fatalf("err setting up test: %v", err)
 	}
 
-	if err := conn.RemoveHost("some-host"); err != nil {
+	if err := conn.RemoveHost(host); err != nil {
 		t.Fatalf("err removing host %v", err)
 	}
 
@@ -340,6 +341,78 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Logf("%v", hosts)
 		t.Log("host still existed after removal")
 		t.Fail()
+	}
+}
+
+func TestRemoveHostsLikeRemovesHostsLike(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost(Hostname("a"))
+	conn.AddHost(Hostname("b"))
+	conn.AddHost(Hostname("b"), Hostgroup(1))
+	conn.AddHost(Hostname("c"), Hostgroup(1))
+	conn.RemoveHostsLike(Hostgroup(1))
+	entries, err := conn.All()
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].hostname < entries[j].hostname
+	})
+	if len(entries) != 2 || entries[0].hostname != "a" || entries[1].hostname != "b" {
+		t.Fatalf("did not remove two entries: %v", entries)
+	}
+}
+
+func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
+	defer resetExec()
+	conn, err := New("dsn")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err = conn.RemoveHostsLike(Hostgroup(-1))
+	if err != ErrConfigBadHostgroup {
+		t.Fatalf("did not receive validation error on bad param: %v", err)
+	}
+
+	mockErr := errors.New("mock")
+	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
+		return nil, mockErr
+	}
+	err = conn.RemoveHostsLike(Hostgroup(1))
+	if err != mockErr {
+		t.Fatalf("did not propogate execution error: %v", err)
+	}
+}
+
+func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost(Hostname("b"), Hostgroup(1))
+	conn.AddHost(Hostname("c"), Hostgroup(1))
+	entries, _ := conn.All()
+	conn.RemoveHosts(entries...)
+	entries, _ = conn.All()
+	if len(entries) != 0 {
+		t.Fatalf("entries returned is not empty: %v", entries)
+	}
+}
+
+func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
+	defer resetExec()
+	conn, _ := New("dsn")
+	mockErr := errors.New("mock")
+	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
+		return nil, mockErr
+	}
+
+	if err := conn.RemoveHosts(defaultHost()); err != mockErr {
+		t.Fatalf("unexpected error from RemoveHosts, did not propogate: %v", err)
 	}
 }
 
@@ -455,58 +528,6 @@ func TestPersistChangesErrorsOnLoad(t *testing.T) {
 	}
 }
 
-func TestSizeOfHostgroupReturnsSize(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	t.Log("inserting into ProxySQL")
-	entryCount := rand.Intn(10)
-	for i := 0; i < entryCount; i++ {
-		insertQuery := fmt.Sprintf("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (4, 'host-num%d', 1000)", i)
-		_, err = conn.Conn().Exec(insertQuery)
-		if err != nil {
-			t.Fatalf("err setting up test: %v", err)
-		}
-	}
-	size, err := conn.SizeOfHostgroup(4)
-	if err != nil {
-		t.Logf("unexpected err reading hostgroup size: %v", err)
-		t.Fail()
-	}
-
-	if size != entryCount {
-		t.Logf("hostgroup read does not match amount of entries %d != %d", size, entryCount)
-		t.Fail()
-	}
-}
-
-func TestSizeOfHostgroupErrorsOnQueryError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetScanRow()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	queryErr := errors.New("error counting entries")
-	scanRow = func(*sql.Row, ...interface{}) error {
-		return queryErr
-	}
-	size, err := conn.SizeOfHostgroup(1)
-	if err != queryErr {
-		t.Logf("size of hostgroup did not properly error on failed count: %v", err)
-		t.Fail()
-	}
-
-	if size != -1 {
-		t.Logf("size of hostgroup was not returned as -1 in error: %d", size)
-		t.Fail()
-	}
-}
-
 func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
@@ -544,140 +565,6 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 			t.Logf("table %v != %v", entries[i], runtime_servers[i])
 			t.Fail()
 		}
-	}
-}
-
-func TestHostgroupErrorsOnQueryError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetQuery()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	queryErr := errors.New("error querying ProxySQL")
-	query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
-		return nil, queryErr
-	}
-	rows, err := conn.Hostgroup(0)
-	if err != queryErr {
-		t.Logf("unexpected error: %v", err)
-		t.Fail()
-	}
-	if rows != nil {
-		t.Fatalf("returned non nil rows: %v", rows)
-	}
-}
-
-func TestHostgroupErrorsOnScanError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetScanRows()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	conn.AddHost(Hostname("some-host"), Hostgroup(0))
-	scanErr := errors.New("error scanning rows")
-	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
-		return scanErr
-	}
-	entries, err := conn.Hostgroup(0)
-	if err != scanErr {
-		t.Logf("unexpected error: %v", err)
-		t.Fail()
-	}
-	if entries != nil {
-		t.Fatalf("returned non nil map: %v", entries)
-	}
-}
-
-func TestHostgroupReturnsEmptyMapOnNoRows(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetScanRows()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	conn.AddHost(Hostname("some-host"), Hostgroup(0))
-	scanErr := errors.New("error scanning rows")
-	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
-		return scanErr
-	}
-	entries, err := conn.Hostgroup(0)
-	if err != scanErr {
-		t.Logf("unexpected error: %v", err)
-		t.Fail()
-	}
-	if entries != nil {
-		t.Fatalf("returned non nil map: %v", entries)
-	}
-}
-
-func TestHostgroupReturnsErrorOnRowsErr(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	defer resetRowsErr()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	conn.AddHost(Hostname("some-host"), Hostgroup(0))
-	conn.AddHost(Hostname("some-host2"), Hostgroup(1))
-	rowsError := errors.New("error in rows")
-	rowsErr = func(_ *sql.Rows) error {
-		return rowsError
-	}
-	entries, err := conn.Hostgroup(0)
-	if err != rowsError {
-		t.Logf("unexpected error: %v", err)
-		t.Fail()
-	}
-	if entries != nil {
-		t.Fatalf("returned non nil map: %v", entries)
-	}
-}
-
-func TestHostgroupHappyPath(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	entries := map[string]int{
-		"reader1": 1,
-		"reader2": 1,
-		"writer":  0,
-	}
-	for k, v := range entries {
-		conn.AddHost(Hostname(k), Hostgroup(v))
-	}
-	hostgroup, err := conn.Hostgroup(0)
-	if err != nil {
-		t.Logf("unexpected error: %v", err)
-		t.Fail()
-	}
-	if reflect.DeepEqual(hostgroup, entries) {
-		t.Fatalf("maps do not match %v != %v", hostgroup, entries)
-	}
-}
-
-func TestHostgroupHappyPathEmpty(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
-	if err != nil {
-		t.Fatal("bad dsn")
-	}
-	hostgroup, err := conn.Hostgroup(0)
-	if err != nil {
-		t.Logf("unexpected error: %v", err)
-		t.Fail()
-	}
-	if len(hostgroup) != 0 {
-		t.Fatalf("map returned was not empty: %v", hostgroup)
 	}
 }
 
