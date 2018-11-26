@@ -344,6 +344,27 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 	}
 }
 
+func TestRemoveHostsLikeRemovesHostsLike(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost(Hostname("a"))
+	conn.AddHost(Hostname("b"))
+	conn.AddHost(Hostname("b"), Hostgroup(1))
+	conn.AddHost(Hostname("c"), Hostgroup(1))
+	conn.RemoveHostsLike(Hostgroup(1))
+	entries, err := conn.All()
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].hostname < entries[j].hostname
+	})
+	if len(entries) != 2 || entries[0].hostname != "a" || entries[1].hostname != "b" {
+		t.Fatalf("did not remove two entries: %v", entries)
+	}
+}
+
 func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
 	defer resetExec()
 	conn, err := New("dsn")
@@ -362,6 +383,23 @@ func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
 	err = conn.RemoveHostsLike(Hostgroup(1))
 	if err != mockErr {
 		t.Fatalf("did not propogate execution error: %v", err)
+	}
+}
+
+func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	conn.AddHost(Hostname("b"), Hostgroup(1))
+	conn.AddHost(Hostname("c"), Hostgroup(1))
+	entries, _ := conn.All()
+	conn.RemoveHosts(entries...)
+	entries, _ = conn.All()
+	if len(entries) != 0 {
+		t.Fatalf("entries returned is not empty: %v", entries)
 	}
 }
 

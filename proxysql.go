@@ -102,8 +102,6 @@ func (p *ProxySQL) RemoveHostsLike(opts ...hostOpts) error {
 
 // convenience function
 func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
-	mut.Lock()
-	defer mut.Unlock()
 	for _, host := range hosts {
 		err := p.RemoveHost(host)
 		if err != nil {
