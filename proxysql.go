@@ -79,15 +79,11 @@ func (p *ProxySQL) Clear() error {
 // like AddHost
 // it is recommended to only call this with RemoveHost(Hostname("a-hostname"))
 
-func (p *ProxySQL) RemoveHost(opts ...hostOpts) error {
+func (p *ProxySQL) RemoveHost(host *Host) error {
 	mut.Lock()
 	defer mut.Unlock()
-	hostq, err := buildAndParseHostQuery(opts...)
-	if err != nil {
-		return err
-	}
 	// build a query with these options
-	_, err = exec(p, buildDeleteQueryLimit(hostq))
+	_, err := exec(p, fmt.Sprintf("delete from mysql_servers where %s", host.where()))
 	return err
 }
 
@@ -104,12 +100,12 @@ func (p *ProxySQL) RemoveHostsLike(opts ...hostOpts) error {
 	return err
 }
 
-// remove hosts that match these hosts exactly
+// convenience function
 func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
 	mut.Lock()
 	defer mut.Unlock()
 	for _, host := range hosts {
-		_, err := exec(p, fmt.Sprintf("delete from mysql_servers where %s", host.where()))
+		err := p.RemoveHost(host)
 		if err != nil {
 			return err
 		}

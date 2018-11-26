@@ -239,7 +239,7 @@ func TestBuildDeleteQueryLimit(t *testing.T) {
 		t.Fail()
 	}
 
-	q := buildDeleteQueryLimit(opts)
+	q := buildDeleteQuery(opts)
 	t.Logf("query: %s", q)
 	if !strings.Contains(q, "mysql_servers") {
 		t.Log("select query built did use default table mysql_servers")

@@ -322,12 +322,12 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'some-host', 1000)")
+	err = conn.AddHost(Hostname("some-host"), Hostgroup(0))
 	if err != nil {
 		t.Fatalf("err setting up test: %v", err)
 	}
 
-	if err := conn.RemoveHost(Hostname("some-host")); err != nil {
+	if err := conn.RemoveHost(defaultHost().Hostname("some-host").Hostgroup(0)); err != nil {
 		t.Fatalf("err removing host %v", err)
 	}
 
