@@ -211,10 +211,6 @@ var scanRows = func(rs *sql.Rows, dest ...interface{}) error {
 	return rs.Scan(dest...)
 }
 
-var scanRow = func(rs *sql.Row, dest ...interface{}) error {
-	return rs.Scan(dest...)
-}
-
 var rowsErr = func(rs *sql.Rows) error {
 	return rs.Err()
 }
