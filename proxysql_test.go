@@ -67,18 +67,12 @@ func TestPingSucceedsOnLiveContainer(t *testing.T) {
 }
 
 func TestPingFailsOnDeadContainer(t *testing.T) {
-	SetupProxySQL(t)
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := New("dsn")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	if err := pool.Purge(proxysqlContainer); err != nil {
-		t.Fatalf("could not purge proxysql: %v", err)
-	}
 	if err := conn.Ping(); err == nil {
-		t.Logf("ping succeeded to live container at %s", base)
-		t.Fail()
+		t.Fatal("ping succeeded to bad dsn")
 	}
 }
 
@@ -143,9 +137,7 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 }
 
 func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := New("dsn")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
@@ -160,19 +152,13 @@ func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
 }
 
 func TestAllErrorsOnQueryError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
 	defer resetQuery()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := New("/")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
 	query = func(*ProxySQL, string, ...interface{}) (*sql.Rows, error) {
 		return nil, errors.New("error querying proxysql")
-	}
-	_, err = conn.Conn().Exec("insert into mysql_servers (hostgroup_id, hostname, max_connections) values (0, 'writerHost', 1000)")
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
 	}
 	entries, err := conn.All()
 	if entries != nil || err == nil {
@@ -268,9 +254,7 @@ func TestAddHostAddsAHostToHostgroup(t *testing.T) {
 }
 
 func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := New("/")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
@@ -282,10 +266,8 @@ func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
 }
 
 func TestAddHostsReturnsErrorOnError(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
 	defer resetExec()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := New("/")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
@@ -485,10 +467,8 @@ func TestHostsLikeParseErrorAndQueryErrorReturnErrors(t *testing.T) {
 }
 
 func TestPersistChangesErrorsOnSave(t *testing.T) {
-	defer SetupAndTeardownProxySQL(t)()
 	defer resetExec()
-	base := "remote-admin:password@tcp(localhost:%s)/"
-	conn, err := New(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	conn, err := New("/")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
