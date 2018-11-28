@@ -14,18 +14,26 @@ type ProxySQL struct {
 
 var mut sync.RWMutex
 
+// Ping is a convenience function that calls the database/sql function on the
+// underlying sql.DB connection
 func (p *ProxySQL) Ping() error {
 	return p.conn.Ping()
 }
 
+// Close is a convenience function that calls the database/sql function on the
+// underlying sql.DB connection
 func (p *ProxySQL) Close() {
 	p.conn.Close()
 }
 
+// Conn is a convenience function that returns the underlying sql.DB connection
 func (p *ProxySQL) Conn() *sql.DB {
 	return p.conn
 }
 
+// PersistChanges saves the mysql servers config to disk, and then loads it
+// to the runtime. This must be called for ProxySQL's changes to take effect
+// This propogates errors from sql.Exec
 func (p *ProxySQL) PersistChanges() error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -40,9 +48,10 @@ func (p *ProxySQL) PersistChanges() error {
 	return nil
 }
 
-// Add host with values specified
-// use default Host, and set with ...HostOpts
-
+// AddHost takes the configuration provided and inserts a host into ProxySQL
+// with that configuration. This will return an error when a validation error
+// of the configuration you specified occurs.
+// This will propogate errors from sql.Exec as well
 func (p *ProxySQL) AddHost(opts ...hostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -55,10 +64,14 @@ func (p *ProxySQL) AddHost(opts ...hostOpts) error {
 	return err
 }
 
+// AddHosts will insert each of the hosts into mysql_servers
+// this will error if any of the hosts are not valid
+// this will propogate error from sql.Exec
 func (p *ProxySQL) AddHosts(hosts ...*Host) error {
 	mut.Lock()
 	defer mut.Unlock()
 	for _, host := range hosts {
+		// TODO host validation to fail before it gets to ProxySQL
 		insertQuery := fmt.Sprintf("insert into mysql_servers %s values %s", host.columns(), host.values())
 		_, err := exec(p, insertQuery)
 		if err != nil {
@@ -68,6 +81,7 @@ func (p *ProxySQL) AddHosts(hosts ...*Host) error {
 	return nil
 }
 
+// Clear is a convenience function to clear configuration
 func (p *ProxySQL) Clear() error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -75,10 +89,8 @@ func (p *ProxySQL) Clear() error {
 	return err
 }
 
-// Remove a host with values specified
-// like AddHost
-// it is recommended to only call this with RemoveHost(Hostname("a-hostname"))
-
+// RemoveHost removes the host that matches the provided host's
+// configuration exactly. This will propogate error from sql.Exec
 func (p *ProxySQL) RemoveHost(host *Host) error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -87,7 +99,9 @@ func (p *ProxySQL) RemoveHost(host *Host) error {
 	return err
 }
 
-// Remove all hosts that match the opts
+// RemoveHostsLike will remove all hosts that match the specified configuration
+// This will error if configuration does not pass validation
+// This will propogate error from sql.Exec
 func (p *ProxySQL) RemoveHostsLike(opts ...hostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -100,7 +114,8 @@ func (p *ProxySQL) RemoveHostsLike(opts ...hostOpts) error {
 	return err
 }
 
-// convenience function
+// RemoveHosts is a convenience function that removes hosts in the given slice
+// This will propogate error from RemoveHost, or from sql.Exec
 func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
 	for _, host := range hosts {
 		err := p.RemoveHost(host)
@@ -115,6 +130,9 @@ func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
 // only include specified values in query
 // if they want to delete a host with a specific hostname, only use that
 
+// HostsLike will return all hosts that match the given configuration
+// This will error on configuration validation failing
+// This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
 func (p *ProxySQL) HostsLike(opts ...hostOpts) ([]*Host, error) {
 	mut.RLock()
 	defer mut.RUnlock()
@@ -150,13 +168,19 @@ func (p *ProxySQL) HostsLike(opts ...hostOpts) ([]*Host, error) {
 		host := &Host{hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment}
 		entries = append(entries, host)
 	}
+	if rowsErr(rows) != nil && rowsErr(rows) != sql.ErrNoRows {
+		return nil, rowsErr(rows)
+	}
 	return entries, nil
 }
 
-// instead of string: int, it should be slice of Host s
-
+// All returns the state of the table that you specify
+// This will error if configuration validation fails, you should only call
+// this with All(Table("runtime_mysql_servers"))
+// or just All() for "mysql_servers"
+// This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
 func (p *ProxySQL) All(opts ...hostOpts) ([]*Host, error) {
-	// this is only used to get the table
+	// TODO: validation that only Table() was called
 	hostq, err := buildAndParseHostQuery(opts...)
 	if err != nil {
 		return nil, err

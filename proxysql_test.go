@@ -448,6 +448,34 @@ func TestHostsLikeReturnsErrorOnRowScanError(t *testing.T) {
 	}
 }
 
+func TestHostsLikeReturnsErrorOnRowsError(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	defer resetRowsErr()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+
+	conn.AddHost(Hostname("hostname1"), Hostgroup(1))
+	conn.AddHost(Hostname("hostname2"), Hostgroup(1))
+
+	mockErr := errors.New("mock")
+	rowsErr = func(_ *sql.Rows) error {
+		return mockErr
+	}
+
+	hosts, err := conn.HostsLike(Hostgroup(1))
+
+	if err != mockErr {
+		t.Fatalf("did not receive error when scanRows returned error: %v", err)
+	}
+
+	if hosts != nil {
+		t.Fatalf("did not receive nil slice on error: %v", hosts)
+	}
+}
+
 func TestHostsLikeParseErrorAndQueryErrorReturnErrors(t *testing.T) {
 	defer resetQuery()
 	conn, err := NewProxySQL("dsn")
