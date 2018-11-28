@@ -3,12 +3,13 @@ package main
 // example application that runs along side ProxySQL
 
 import (
-	"github.com/kirinrastogi/proxysql-go"
+	. "github.com/kirinrastogi/proxysql-go" // import into current namespace, use proxysql. if you omit this period
 	"log"
 )
 
 func main() {
-	conn, err := proxysql.New("remote-admin:password@tcp(localhost:6032)/")
+	// this is the dsn of the container that ./run.sh creates
+	conn, err := NewProxySQL("remote-admin:password@tcp(localhost:6032)/")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -18,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = conn.AddHost(proxysql.Hostname("example"), proxysql.Hostgroup(1))
+	err = conn.AddHost(Hostname("example"), Hostgroup(1))
 	if err != nil {
 		log.Fatal(err)
 	}
