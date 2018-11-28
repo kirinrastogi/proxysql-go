@@ -13,7 +13,7 @@ func init() {
 	open = sql.Open
 }
 
-func New(dsn string) (*ProxySQL, error) {
+func NewProxySQL(dsn string) (*ProxySQL, error) {
 	conn, err := open("mysql", dsn)
 	if err != nil {
 		return nil, err
