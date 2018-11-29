@@ -121,6 +121,12 @@ func Hostname(h string) hostOpts {
 	}
 }
 
+func MaxConnections(c int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.MaxConnections(c)
+	}
+}
+
 // don't specify table, because its not included in the query
 func (q *hostQuery) Table(t string) *hostQuery {
 	q.table = t
@@ -140,6 +146,11 @@ func (q *hostQuery) Port(p int) *hostQuery {
 func (q *hostQuery) Hostname(h string) *hostQuery {
 	q.host.hostname = h
 	return q.specifyField("hostname")
+}
+
+func (q *hostQuery) MaxConnections(c int) *hostQuery {
+	q.host.max_connections = c
+	return q.specifyField("max_connections")
 }
 
 // hostname is the only non default value

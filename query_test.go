@@ -38,6 +38,14 @@ func TestHostname(t *testing.T) {
 	}
 }
 
+func TestMaxConnections(t *testing.T) {
+	expected := 300
+	result := MaxConnections(expected)(defaultHostQuery()).host.max_connections
+	if result != expected {
+		t.Fatalf("did not set max_connections properly: %d", result)
+	}
+}
+
 func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 	opts, err := buildAndParseHostQuery()
 	if err != nil {
