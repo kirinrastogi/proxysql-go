@@ -591,8 +591,9 @@ func TestAddHostWithAllConfigurationsAddsAHostConfigured(t *testing.T) {
 		max_connections = 300
 		hostgroup_id    = 1
 		status          = "OFFLINE_SOFT"
+		weight          = 2
 	)
-	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), Hostgroup(hostgroup_id), Status(status))
+	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), Hostgroup(hostgroup_id), Status(status), Weight(weight))
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -620,6 +621,10 @@ func TestAddHostWithAllConfigurationsAddsAHostConfigured(t *testing.T) {
 
 	if host.status != status {
 		t.Fatalf("status not set properly: %s", host.status)
+	}
+
+	if host.weight != weight {
+		t.Fatalf("weight not set properly: %d", host.weight)
 	}
 }
 

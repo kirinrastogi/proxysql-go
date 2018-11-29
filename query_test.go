@@ -54,6 +54,14 @@ func TestStatus(t *testing.T) {
 	}
 }
 
+func TestWeight(t *testing.T) {
+	expected := 2
+	result := Weight(expected)(defaultHostQuery()).host.weight
+	if result != expected {
+		t.Fatalf("did not set weight properly: %d", result)
+	}
+}
+
 func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 	opts, err := buildAndParseHostQuery()
 	if err != nil {

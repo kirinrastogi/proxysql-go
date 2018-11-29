@@ -9,13 +9,14 @@ import (
 type vOpts func(*hostQuery) error
 
 var (
-	ErrConfigBadTable      error = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
-	ErrConfigBadHostgroup  error = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
-	ErrConfigBadPort       error = errors.New("Bad port value, must be in [0, 65535]")
-	ErrConfigBadMaxConns   error = errors.New("Bad max_connections value, must be > 0")
-	ErrConfigBadStatus     error = errors.New("Bad status value, must be in ['ONLINE','SHUNNED','OFFLINE_SOFT', 'OFFLINE_HARD']")
-	ErrConfigDuplicateSpec error = errors.New("Bad function call, a value was specified twice")
-	ErrConfigNoHostname    error = errors.New("Bad hostname, must not be empty")
+	ErrConfigBadTable          = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
+	ErrConfigBadHostgroup      = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
+	ErrConfigBadPort           = errors.New("Bad port value, must be in [0, 65535]")
+	ErrConfigBadMaxConnections = errors.New("Bad max_connections value, must be > 0")
+	ErrConfigBadStatus         = errors.New("Bad status value, must be in ['ONLINE','SHUNNED','OFFLINE_SOFT', 'OFFLINE_HARD']")
+	ErrConfigBadWeight         = errors.New("Bad weight value, must be > 0")
+	ErrConfigDuplicateSpec     = errors.New("Bad function call, a value was specified twice")
+	ErrConfigNoHostname        = errors.New("Bad hostname, must not be empty")
 
 	validationFuncs []vOpts
 )
@@ -27,6 +28,7 @@ func init() {
 	validationFuncs = append(validationFuncs, validatePort)
 	validationFuncs = append(validationFuncs, validateMaxConnections)
 	validationFuncs = append(validationFuncs, validateStatus)
+	validationFuncs = append(validationFuncs, validateWeight)
 	validationFuncs = append(validationFuncs, validateSpecifiedFields)
 }
 
@@ -57,7 +59,7 @@ func validatePort(opts *hostQuery) error {
 
 func validateMaxConnections(opts *hostQuery) error {
 	if opts.host.max_connections < 0 {
-		return ErrConfigBadMaxConns
+		return ErrConfigBadMaxConnections
 	}
 	return nil
 }
@@ -66,6 +68,13 @@ func validateStatus(opts *hostQuery) error {
 	s := opts.host.status
 	if s != "ONLINE" && s != "SHUNNED" && s != "OFFLINE_SOFT" && s != "OFFLINE_HARD" {
 		return ErrConfigBadStatus
+	}
+	return nil
+}
+
+func validateWeight(opts *hostQuery) error {
+	if opts.host.weight < 0 {
+		return ErrConfigBadWeight
 	}
 	return nil
 }
