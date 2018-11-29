@@ -1,5 +1,7 @@
 package proxysql
 
+// this file is for validation, and error specification
+
 import (
 	"errors"
 )
