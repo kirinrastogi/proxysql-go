@@ -142,6 +142,13 @@ func Status(s string) hostOpts {
 	}
 }
 
+// Include this in a call to ProxySQL to specify 'weight' in a query
+func Weight(w int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.Weight(w)
+	}
+}
+
 func (q *hostQuery) Table(t string) *hostQuery {
 	// don't put it in specifyFields because that slice is used for
 	// building wheres and values
@@ -172,6 +179,11 @@ func (q *hostQuery) MaxConnections(c int) *hostQuery {
 func (q *hostQuery) Status(s string) *hostQuery {
 	q.host.status = s
 	return q.specifyField("status")
+}
+
+func (q *hostQuery) Weight(w int) *hostQuery {
+	q.host.weight = w
+	return q.specifyField("weight")
 }
 
 // hostname is the only non default value
