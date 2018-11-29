@@ -110,6 +110,12 @@ func TestValidateHostQuery(t *testing.T) {
 		{defaultHostQuery().MaxConnections(0), nil},
 		{defaultHostQuery().MaxConnections(1), nil},
 		{defaultHostQuery().MaxConnections(-1), ErrConfigBadMaxConns},
+		{defaultHostQuery().Status("ONLINE"), nil},
+		{defaultHostQuery().Status("SHUNNED"), nil},
+		{defaultHostQuery().Status("OFFLINE_SOFT"), nil},
+		{defaultHostQuery().Status("OFFLINE_HARD"), nil},
+		{defaultHostQuery().Status(""), ErrConfigBadStatus},
+		{defaultHostQuery().Status("status"), ErrConfigBadStatus},
 	}
 
 	for _, testCase := range tests {
