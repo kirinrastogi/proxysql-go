@@ -1,5 +1,7 @@
 package proxysql
 
+// this file is for query generation, and configuration
+
 import (
 	"bytes"
 	"fmt"
@@ -97,32 +99,45 @@ func (opts *hostQuery) specifyField(field string) *hostQuery {
 	return opts
 }
 
+// Include this in a call to ProxySQL to specify 'hostgroup_id' in a query
 func Hostgroup(h int) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Hostgroup(h)
 	}
 }
 
+// Include this in a call to ProxySQL to specify
+// 'mysql_servers' or 'runtime_mysql_servers' in a query
 func Table(t string) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Table(t)
 	}
 }
 
+// Include this in a call to ProxySQL to specify 'port' in a query
 func Port(p int) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Port(p)
 	}
 }
 
+// Include this in a call to ProxySQL to specify 'hostname' in a query
 func Hostname(h string) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Hostname(h)
 	}
 }
 
-// don't specify table, because its not included in the query
+// Include this in a call to ProxySQL to specify 'max_connections' in a query
+func MaxConnections(c int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.MaxConnections(c)
+	}
+}
+
 func (q *hostQuery) Table(t string) *hostQuery {
+	// don't put it in specifyFields because that slice is used for
+	// building wheres and values
 	q.table = t
 	return q
 }
@@ -140,6 +155,11 @@ func (q *hostQuery) Port(p int) *hostQuery {
 func (q *hostQuery) Hostname(h string) *hostQuery {
 	q.host.hostname = h
 	return q.specifyField("hostname")
+}
+
+func (q *hostQuery) MaxConnections(c int) *hostQuery {
+	q.host.max_connections = c
+	return q.specifyField("max_connections")
 }
 
 // hostname is the only non default value

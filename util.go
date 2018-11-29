@@ -1,5 +1,7 @@
 package proxysql
 
+// this file is for validation, and error specification
+
 import (
 	"errors"
 )
@@ -10,6 +12,7 @@ var (
 	ErrConfigBadTable      error = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
 	ErrConfigBadHostgroup  error = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
 	ErrConfigBadPort       error = errors.New("Bad port value, must be in [0, 65535]")
+	ErrConfigBadMaxConns   error = errors.New("Bad max_connections value, must be > 0")
 	ErrConfigDuplicateSpec error = errors.New("Bad function call, a value was specified twice")
 	ErrConfigNoHostname    error = errors.New("Bad hostname, must not be empty")
 
@@ -21,6 +24,7 @@ func init() {
 	validationFuncs = append(validationFuncs, validateTableOpts)
 	validationFuncs = append(validationFuncs, validateHostgroup)
 	validationFuncs = append(validationFuncs, validatePort)
+	validationFuncs = append(validationFuncs, validateMaxConnections)
 	validationFuncs = append(validationFuncs, validateSpecifiedFields)
 }
 
@@ -45,6 +49,13 @@ func validateHostgroup(opts *hostQuery) error {
 func validatePort(opts *hostQuery) error {
 	if opts.host.port < 0 || opts.host.port > 65535 {
 		return ErrConfigBadPort
+	}
+	return nil
+}
+
+func validateMaxConnections(opts *hostQuery) error {
+	if opts.host.max_connections < 0 {
+		return ErrConfigBadMaxConns
 	}
 	return nil
 }

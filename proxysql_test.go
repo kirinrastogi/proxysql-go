@@ -576,6 +576,48 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	}
 }
 
+func TestAddHostWithAllConfigurationsAddsAHostConfigured(t *testing.T) {
+	defer SetupAndTeardownProxySQL(t)()
+	base := "remote-admin:password@tcp(localhost:%s)/"
+	containerAddr := fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp"))
+	conn, err := NewProxySQL(containerAddr)
+	if err != nil {
+		t.Log("bad dsn")
+		t.Fail()
+	}
+	var (
+		port            = 3307
+		hostname        = "mysql-1"
+		max_connections = 300
+		hostgroup_id    = 1
+	)
+	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), Hostgroup(hostgroup_id))
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+
+	entries, err := conn.All()
+	if len(entries) != 1 || err != nil {
+		t.Fatalf("error getting all: %v, entries: %v", err, entries)
+	}
+	host := entries[0]
+
+	if host.port != port {
+		t.Fatalf("port not set properly: %d", host.port)
+	}
+
+	if host.hostname != hostname {
+		t.Fatalf("hostname not set properly: %s", host.hostname)
+	}
+	if host.max_connections != max_connections {
+		t.Fatalf("max_connections not set properly: %d", host.max_connections)
+	}
+
+	if host.hostgroup_id != hostgroup_id {
+		t.Fatalf("hostgroup_id not set properly: %d", host.hostgroup_id)
+	}
+}
+
 func SetupAndTeardownProxySQL(t *testing.T) func() {
 	SetupProxySQL(t)
 	return func() {

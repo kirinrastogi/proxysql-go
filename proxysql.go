@@ -1,5 +1,7 @@
 package proxysql
 
+// this file is for the functions on the ProxySQL struct
+
 import (
 	"database/sql"
 	"fmt"

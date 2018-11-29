@@ -1,5 +1,7 @@
 package proxysql
 
+// this file is to show the entrypoint
+
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"

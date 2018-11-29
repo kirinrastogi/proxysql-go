@@ -107,6 +107,9 @@ func TestValidateHostQuery(t *testing.T) {
 		{defaultHostQuery().Port(65535), nil},
 		{defaultHostQuery().Port(-1), ErrConfigBadPort},
 		{defaultHostQuery().Port(65536), ErrConfigBadPort},
+		{defaultHostQuery().MaxConnections(0), nil},
+		{defaultHostQuery().MaxConnections(1), nil},
+		{defaultHostQuery().MaxConnections(-1), ErrConfigBadMaxConns},
 	}
 
 	for _, testCase := range tests {
