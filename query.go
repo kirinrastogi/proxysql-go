@@ -135,6 +135,13 @@ func MaxConnections(c int) hostOpts {
 	}
 }
 
+// Include this in a call to ProxySQL to specify 'status' in a query
+func Status(s string) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.Status(s)
+	}
+}
+
 func (q *hostQuery) Table(t string) *hostQuery {
 	// don't put it in specifyFields because that slice is used for
 	// building wheres and values
@@ -160,6 +167,11 @@ func (q *hostQuery) Hostname(h string) *hostQuery {
 func (q *hostQuery) MaxConnections(c int) *hostQuery {
 	q.host.max_connections = c
 	return q.specifyField("max_connections")
+}
+
+func (q *hostQuery) Status(s string) *hostQuery {
+	q.host.status = s
+	return q.specifyField("status")
 }
 
 // hostname is the only non default value

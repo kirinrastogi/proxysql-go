@@ -46,6 +46,14 @@ func TestMaxConnections(t *testing.T) {
 	}
 }
 
+func TestStatus(t *testing.T) {
+	expected := "OFFLINE_SOFT"
+	result := Status(expected)(defaultHostQuery()).host.status
+	if result != expected {
+		t.Fatalf("did not set status properly: %s", result)
+	}
+}
+
 func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 	opts, err := buildAndParseHostQuery()
 	if err != nil {
