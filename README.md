@@ -28,3 +28,19 @@ err := conn.AddHost(Hostname("some-hostname"), Hostgroup(1))
 if err != nil {...}
 err = conn.PersistChanges()
 ```
+
+# Running Tests
+
+You must have docker installed with privileged access.
+
+Run the tests with
+
+```bash
+go test
+```
+
+You can run tests that don't require docker with
+
+```bash
+go test -short
+```
