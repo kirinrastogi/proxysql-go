@@ -62,6 +62,46 @@ func TestWeight(t *testing.T) {
 	}
 }
 
+func TestCompression(t *testing.T) {
+	expected := 1
+	result := Compression(expected)(defaultHostQuery()).host.compression
+	if result != expected {
+		t.Fatalf("did not set compression properly: %d", result)
+	}
+}
+
+func TestMaxReplicationLag(t *testing.T) {
+	expected := 1
+	result := MaxReplicationLag(expected)(defaultHostQuery()).host.max_replication_lag
+	if result != expected {
+		t.Fatalf("did not set max_replication_lag properly: %d", result)
+	}
+}
+
+func TestUseSSL(t *testing.T) {
+	expected := 1
+	result := UseSSL(expected)(defaultHostQuery()).host.use_ssl
+	if result != expected {
+		t.Fatalf("did not set use_ssl properly: %d", result)
+	}
+}
+
+func TestMaxLatencyMS(t *testing.T) {
+	expected := 1
+	result := MaxLatencyMS(expected)(defaultHostQuery()).host.max_latency_ms
+	if result != expected {
+		t.Fatalf("did not set max_latency_ms properly: %d", result)
+	}
+}
+
+func TestComment(t *testing.T) {
+	expected := "comment"
+	result := Comment(expected)(defaultHostQuery()).host.comment
+	if result != expected {
+		t.Fatalf("did not set comment properly: %s", result)
+	}
+}
+
 func TestBuildAndParseEmptyHostQuery(t *testing.T) {
 	opts, err := buildAndParseHostQuery()
 	if err != nil {

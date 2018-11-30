@@ -149,6 +149,41 @@ func Weight(w int) hostOpts {
 	}
 }
 
+// Include this in a call to ProxySQL to specify 'compression' in a query
+func Compression(c int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.Compression(c)
+	}
+}
+
+// Include this in a call to ProxySQL to specify 'max_replication_lag' in a query
+func MaxReplicationLag(m int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.MaxReplicationLag(m)
+	}
+}
+
+// Include this in a call to ProxySQL to specify 'use_ssl' in a query
+func UseSSL(u int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.UseSSL(u)
+	}
+}
+
+// Include this in a call to ProxySQL to specify 'max_latency_ms' in a query
+func MaxLatencyMS(m int) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.MaxLatencyMS(m)
+	}
+}
+
+// Include this in a call to ProxySQL to specify 'comment' in a query
+func Comment(c string) hostOpts {
+	return func(opts *hostQuery) *hostQuery {
+		return opts.Comment(c)
+	}
+}
+
 func (q *hostQuery) Table(t string) *hostQuery {
 	// don't put it in specifyFields because that slice is used for
 	// building wheres and values
@@ -184,6 +219,31 @@ func (q *hostQuery) Status(s string) *hostQuery {
 func (q *hostQuery) Weight(w int) *hostQuery {
 	q.host.weight = w
 	return q.specifyField("weight")
+}
+
+func (q *hostQuery) Compression(c int) *hostQuery {
+	q.host.compression = c
+	return q.specifyField("compression")
+}
+
+func (q *hostQuery) MaxReplicationLag(m int) *hostQuery {
+	q.host.max_replication_lag = m
+	return q.specifyField("max_replication_lag")
+}
+
+func (q *hostQuery) UseSSL(u int) *hostQuery {
+	q.host.use_ssl = u
+	return q.specifyField("use_ssl")
+}
+
+func (q *hostQuery) MaxLatencyMS(m int) *hostQuery {
+	q.host.max_latency_ms = m
+	return q.specifyField("max_latency_ms")
+}
+
+func (q *hostQuery) Comment(c string) *hostQuery {
+	q.host.comment = c
+	return q.specifyField("comment")
 }
 
 // hostname is the only non default value
