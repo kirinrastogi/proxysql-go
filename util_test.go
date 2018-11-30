@@ -119,6 +119,17 @@ func TestValidateHostQuery(t *testing.T) {
 		{defaultHostQuery().Weight(0), nil},
 		{defaultHostQuery().Weight(1), nil},
 		{defaultHostQuery().Weight(-1), ErrConfigBadWeight},
+		{defaultHostQuery().Compression(1), nil},
+		{defaultHostQuery().Compression(-1), ErrConfigBadCompression},
+		{defaultHostQuery().Compression(102401), ErrConfigBadCompression},
+		{defaultHostQuery().MaxReplicationLag(1), nil},
+		{defaultHostQuery().MaxReplicationLag(-1), ErrConfigBadMaxReplicationLag},
+		{defaultHostQuery().MaxReplicationLag(126144001), ErrConfigBadMaxReplicationLag},
+		{defaultHostQuery().UseSSL(0), nil},
+		{defaultHostQuery().UseSSL(1), nil},
+		{defaultHostQuery().UseSSL(2), ErrConfigBadUseSSL},
+		{defaultHostQuery().MaxLatencyMS(0), nil},
+		{defaultHostQuery().MaxLatencyMS(-1), ErrConfigBadMaxLatencyMS},
 	}
 
 	for _, testCase := range tests {

@@ -586,14 +586,19 @@ func TestAddHostWithAllConfigurationsAddsAHostConfigured(t *testing.T) {
 		t.Fail()
 	}
 	var (
-		port            = 3307
-		hostname        = "mysql-1"
-		max_connections = 300
-		hostgroup_id    = 1
-		status          = "OFFLINE_SOFT"
-		weight          = 2
+		port                = 3307
+		hostname            = "mysql-1"
+		max_connections     = 300
+		hostgroup_id        = 1
+		status              = "OFFLINE_SOFT"
+		weight              = 2
+		compression         = 1
+		max_replication_lag = 1
+		use_ssl             = 1
+		max_latency_ms      = 1
+		comment             = ":)"
 	)
-	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), Hostgroup(hostgroup_id), Status(status), Weight(weight))
+	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), Hostgroup(hostgroup_id), Status(status), Weight(weight), Compression(compression), MaxReplicationLag(max_replication_lag), UseSSL(use_ssl), MaxLatencyMS(max_latency_ms), Comment(comment))
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -625,6 +630,26 @@ func TestAddHostWithAllConfigurationsAddsAHostConfigured(t *testing.T) {
 
 	if host.weight != weight {
 		t.Fatalf("weight not set properly: %d", host.weight)
+	}
+
+	if host.compression != compression {
+		t.Fatalf("compression not set properly: %d", host.compression)
+	}
+
+	if host.max_replication_lag != max_replication_lag {
+		t.Fatalf("max_replication_lag not set properly: %d", host.max_replication_lag)
+	}
+
+	if host.use_ssl != use_ssl {
+		t.Fatalf("use_ssl not set properly: %d", host.use_ssl)
+	}
+
+	if host.max_latency_ms != max_latency_ms {
+		t.Fatalf("max_latency_ms not set properly: %d", host.max_latency_ms)
+	}
+
+	if host.comment != comment {
+		t.Fatalf("comment not set properly: %s", host.comment)
 	}
 }
 
