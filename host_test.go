@@ -5,7 +5,7 @@ import (
 )
 
 func TestValues(t *testing.T) {
-	h := defaultHost().Hostname("hn").Port(3307)
+	h := defaultHost().SetHostname("hn").SetPort(3307)
 	s := h.values()
 	t.Logf("string built: %s", s)
 	if s != "(0, 'hn', 3307, 'ONLINE', 1, 0, 1000, 0, 0, 0, '')" {
@@ -23,7 +23,7 @@ func TestColumns(t *testing.T) {
 }
 
 func TestWhere(t *testing.T) {
-	h := defaultHost().Hostname("hn").Port(3307).Hostgroup(1)
+	h := defaultHost().SetHostname("hn").SetPort(3307).SetHostgroupID(1)
 	s := h.where()
 	t.Logf("string built: %s", s)
 	if s != "hostgroup_id = 1 and hostname = 'hn' and port = 3307 and status = 'ONLINE' and weight = 1 and compression = 0 and max_connections = 1000 and max_replication_lag = 0 and use_ssl = 0 and max_latency_ms = 0 and comment = ''" {

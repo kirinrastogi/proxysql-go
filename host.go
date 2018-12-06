@@ -20,19 +20,31 @@ type Host struct {
 	comment             string
 }
 
-func (h *Host) Hostname(hn string) *Host {
+func (h *Host) SetHostname(hn string) *Host {
 	h.hostname = hn
 	return h
 }
 
-func (h *Host) Port(p int) *Host {
+func (h *Host) SetPort(p int) *Host {
 	h.port = p
 	return h
 }
 
-func (h *Host) Hostgroup(hg int) *Host {
+func (h *Host) SetHostgroupID(hg int) *Host {
 	h.hostgroup_id = hg
 	return h
+}
+
+func (h *Host) Hostname() string {
+	return h.hostname
+}
+
+func (h *Host) Port() int {
+	return h.port
+}
+
+func (h *Host) HostgroupID() int {
+	return h.hostgroup_id
 }
 
 func (h *Host) values() string {

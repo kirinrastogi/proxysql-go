@@ -26,18 +26,18 @@ func TestValidateTableOpts(t *testing.T) {
 	}
 }
 
-func TestValidateHostgroup(t *testing.T) {
+func TestValidateHostgroupID(t *testing.T) {
 	hostgroupTests := hostQueryTests{
 		{defaultHostQuery(), nil},
-		{defaultHostQuery().Hostgroup(1), nil},
-		{defaultHostQuery().Hostgroup(-1), ErrConfigBadHostgroup},
-		{defaultHostQuery().Hostgroup(2147483649), ErrConfigBadHostgroup},
+		{defaultHostQuery().HostgroupID(1), nil},
+		{defaultHostQuery().HostgroupID(-1), ErrConfigBadHostgroupID},
+		{defaultHostQuery().HostgroupID(2147483649), ErrConfigBadHostgroupID},
 	}
 
 	for _, testCase := range hostgroupTests {
 		obj := testCase.in
 		err := testCase.out
-		if validateHostgroup(obj) != err {
+		if validateHostgroupID(obj) != err {
 			t.Logf("did not match expected validation. hg %d, err %v", obj.host.hostgroup_id, err)
 			t.Fail()
 		}
@@ -65,8 +65,8 @@ func TestValidatePort(t *testing.T) {
 
 func TestValidateSpecifiedFields(t *testing.T) {
 	specTests := hostQueryTests{
-		{defaultHostQuery().Hostgroup(1).Port(1), nil},
-		{defaultHostQuery().Hostgroup(1).Port(1).Port(2), ErrConfigDuplicateSpec},
+		{defaultHostQuery().HostgroupID(1).Port(1), nil},
+		{defaultHostQuery().HostgroupID(1).Port(1).Port(2), ErrConfigDuplicateSpec},
 	}
 
 	for _, testCase := range specTests {
@@ -100,9 +100,9 @@ func TestValidateHostQuery(t *testing.T) {
 		{defaultHostQuery(), nil},
 		{defaultHostQuery().Table("runtime_mysql_servers"), nil},
 		{defaultHostQuery().Table("bad table").Port(123), ErrConfigBadTable},
-		{defaultHostQuery().Hostgroup(1).Port(123).Table("runtime_mysql_servers"), nil},
-		{defaultHostQuery().Hostgroup(-1), ErrConfigBadHostgroup},
-		{defaultHostQuery().Hostgroup(2147483649), ErrConfigBadHostgroup},
+		{defaultHostQuery().HostgroupID(1).Port(123).Table("runtime_mysql_servers"), nil},
+		{defaultHostQuery().HostgroupID(-1), ErrConfigBadHostgroupID},
+		{defaultHostQuery().HostgroupID(2147483649), ErrConfigBadHostgroupID},
 		{defaultHostQuery().Port(0), nil},
 		{defaultHostQuery().Port(65535), nil},
 		{defaultHostQuery().Port(-1), ErrConfigBadPort},

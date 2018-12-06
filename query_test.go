@@ -14,9 +14,9 @@ func TestTable(t *testing.T) {
 	}
 }
 
-func TestHostgroup(t *testing.T) {
+func TestHostgroupID(t *testing.T) {
 	expected := 1
-	result := Hostgroup(expected)(defaultHostQuery()).host.hostgroup_id
+	result := HostgroupID(expected)(defaultHostQuery()).host.hostgroup_id
 	if result != expected {
 		t.Fatalf("did not set hostgroup properly: %d", result)
 	}
@@ -146,20 +146,20 @@ func TestBuildAndParseHostQueryWithHostnameSucceedsWithHostname(t *testing.T) {
 	}
 }
 
-func TestBuildAndParseHostQueryWithHostgroup(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Hostgroup(1))
+func TestBuildAndParseHostQueryWithHostgroupID(t *testing.T) {
+	opts, err := buildAndParseHostQuery(HostgroupID(1))
 	if err != nil {
 		t.Logf("unexpected err: %v", err)
 		t.Fail()
 	}
-	if !reflect.DeepEqual(opts, defaultHostQuery().Hostgroup(1)) {
+	if !reflect.DeepEqual(opts, defaultHostQuery().HostgroupID(1)) {
 		t.Fatalf("parsed opts were not default: %v", opts)
 	}
 }
 
 func TestBuildAndParseHostQueryError(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Hostgroup(-1))
-	if err != ErrConfigBadHostgroup {
+	opts, err := buildAndParseHostQuery(HostgroupID(-1))
+	if err != ErrConfigBadHostgroupID {
 		t.Logf("did not receive expected err: %v", err)
 		t.Fail()
 	}
@@ -169,7 +169,7 @@ func TestBuildAndParseHostQueryError(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumns(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Hostgroup(1), Port(12))
+	opts, err := buildAndParseHostQuery(HostgroupID(1), Port(12))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -183,7 +183,7 @@ func TestBuildSpecifiedColumns(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumnsDifferentOrder(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(12))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -197,7 +197,7 @@ func TestBuildSpecifiedColumnsDifferentOrder(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumnsDoesntGiveUsDuplicates(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12), Port(2))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(12), Port(2))
 	if err != ErrConfigDuplicateSpec {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -209,7 +209,7 @@ func TestBuildSpecifiedColumnsDoesntGiveUsDuplicates(t *testing.T) {
 }
 
 func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(12))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(12))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -225,7 +225,7 @@ func TestBuildSpecifiedColumnsIsOrderDependent(t *testing.T) {
 }
 
 func TestBuildSpecifiedValues(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -239,7 +239,7 @@ func TestBuildSpecifiedValues(t *testing.T) {
 }
 
 func TestColumnsAndValuesHaveTheSameAmountOfCommas(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -253,7 +253,7 @@ func TestColumnsAndValuesHaveTheSameAmountOfCommas(t *testing.T) {
 }
 
 func TestBuildInsertQuery(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -275,7 +275,7 @@ func TestBuildInsertQuery(t *testing.T) {
 }
 
 func TestBuildSelectQuery(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Table("runtime_mysql_servers"), Hostname("host"))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(3), Table("runtime_mysql_servers"), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
@@ -297,7 +297,7 @@ func TestBuildSelectQuery(t *testing.T) {
 }
 
 func TestBuildDeleteQueryLimit(t *testing.T) {
-	opts, err := buildAndParseHostQuery(Port(1), Hostgroup(3), Hostname("host"))
+	opts, err := buildAndParseHostQuery(Port(1), HostgroupID(3), Hostname("host"))
 	if err != nil {
 		t.Logf("unexpected parse error: %v", err)
 		t.Fail()
