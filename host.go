@@ -64,6 +64,7 @@ func (h *Host) SetUseSSL(u int) *Host {
 	h.use_ssl = u
 	return h
 }
+
 func (h *Host) SetMaxLatencyMS(m int) *Host {
 	h.max_latency_ms = m
 	return h
