@@ -22,15 +22,17 @@ go get github.com/kirinrastogi/proxysql-go
 
 ```golang
 import (
-  . "github.com/kirinrastogi/proxysql-go"
+  . "github.com/kirinrastogi/proxysql-go" // optional "."
 )
 ```
 
 ### Create an instance of the client
 
 ```golang
-conn, err := NewProxySQL("/") // uses [DSN format](https://github.com/go-sql-driver/mysql#dsn-data-source-name)
+conn, err := NewProxySQL("/")
 ```
+
+The string should be in the [DSN format](https://github.com/go-sql-driver/mysql#dsn-data-source-name)
 
 ### Modify ProxySQL's configuration
 
