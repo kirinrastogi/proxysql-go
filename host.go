@@ -35,6 +35,45 @@ func (h *Host) SetHostgroupID(hg int) *Host {
 	return h
 }
 
+func (h *Host) SetStatus(s string) *Host {
+	h.status = s
+	return h
+}
+
+func (h *Host) SetWeight(w int) *Host {
+	h.weight = w
+	return h
+}
+
+func (h *Host) SetCompression(c int) *Host {
+	h.compression = c
+	return h
+}
+
+func (h *Host) SetMaxConnections(m int) *Host {
+	h.max_connections = m
+	return h
+}
+
+func (h *Host) SetMaxReplicationLag(m int) *Host {
+	h.max_replication_lag = m
+	return h
+}
+
+func (h *Host) SetUseSSL(u int) *Host {
+	h.use_ssl = u
+	return h
+}
+func (h *Host) SetMaxLatencyMS(m int) *Host {
+	h.max_latency_ms = m
+	return h
+}
+
+func (h *Host) SetComment(c string) *Host {
+	h.comment = c
+	return h
+}
+
 func (h *Host) Hostname() string {
 	return h.hostname
 }
