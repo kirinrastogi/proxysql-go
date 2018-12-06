@@ -86,6 +86,38 @@ func (h *Host) HostgroupID() int {
 	return h.hostgroup_id
 }
 
+func (h *Host) Status() string {
+	return h.status
+}
+
+func (h *Host) Weight() int {
+	return h.weight
+}
+
+func (h *Host) Compression() int {
+	return h.compression
+}
+
+func (h *Host) MaxConnections() int {
+	return h.max_connections
+}
+
+func (h *Host) MaxReplicationLag() int {
+	return h.max_replication_lag
+}
+
+func (h *Host) UseSSL() int {
+	return h.use_ssl
+}
+
+func (h *Host) MaxLatencyMS() int {
+	return h.max_latency_ms
+}
+
+func (h *Host) Comment() string {
+	return h.comment
+}
+
 func (h *Host) values() string {
 	return fmt.Sprintf("(%d, '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", h.hostgroup_id, h.hostname, h.port, h.status, h.weight, h.compression, h.max_connections, h.max_replication_lag, h.use_ssl, h.max_latency_ms, h.comment)
 }
