@@ -37,7 +37,7 @@ The string should be in the [DSN format](https://github.com/go-sql-driver/mysql#
 ### Modify ProxySQL's configuration
 
 ```golang
-err := conn.AddHost(Hostname("some-hostname"), Hostgroup(1))
+err := conn.AddHost(Hostname("some-hostname"), HostgroupID(1))
 if err != nil {...}
 err = conn.PersistChanges()
 if err != nil {...}

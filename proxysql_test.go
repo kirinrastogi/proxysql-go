@@ -102,9 +102,9 @@ func TestAllReturnsAllEntries(t *testing.T) {
 	}
 	t.Log("inserting into ProxySQL")
 	insertedEntries := []*Host{
-		defaultHost().SetHostname("hostname1"),
-		defaultHost().SetHostname("hostname2").SetPort(3307),
-		defaultHost().SetHostname("hostname3").SetPort(3305),
+		DefaultHost().SetHostname("hostname1"),
+		DefaultHost().SetHostname("hostname2").SetPort(3307),
+		DefaultHost().SetHostname("hostname3").SetPort(3305),
 	}
 	err = conn.AddHosts(insertedEntries...)
 	entries, err := conn.All()
@@ -275,7 +275,7 @@ func TestAddHostsReturnsErrorOnError(t *testing.T) {
 	exec = func(_ *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
 		return nil, mockErr
 	}
-	err = conn.AddHosts(defaultHost())
+	err = conn.AddHosts(DefaultHost())
 	if err != mockErr {
 		t.Fatalf("did not get expected error: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	host := defaultHost().SetHostname("some-host").SetHostgroupID(0)
+	host := DefaultHost().SetHostname("some-host").SetHostgroupID(0)
 	err = conn.AddHosts(host)
 	if err != nil {
 		t.Fatalf("err setting up test: %v", err)
@@ -393,7 +393,7 @@ func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
 		return nil, mockErr
 	}
 
-	if err := conn.RemoveHosts(defaultHost()); err != mockErr {
+	if err := conn.RemoveHosts(DefaultHost()); err != mockErr {
 		t.Fatalf("unexpected error from RemoveHosts, did not propogate: %v", err)
 	}
 }
@@ -547,9 +547,9 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	}
 	// make entries map compare to runtime_servers.All()
 	entries := []*Host{
-		defaultHost().SetHostname("reader1").SetHostgroupID(1),
-		defaultHost().SetHostname("reader2").SetHostgroupID(1),
-		defaultHost().SetHostname("writer").SetHostgroupID(0),
+		DefaultHost().SetHostname("reader1").SetHostgroupID(1),
+		DefaultHost().SetHostname("reader2").SetHostgroupID(1),
+		DefaultHost().SetHostname("writer").SetHostgroupID(0),
 	}
 	t.Log("inserting into ProxySQL")
 	conn.AddHosts(entries...)
