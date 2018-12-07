@@ -100,9 +100,9 @@ func (opts *hostQuery) specifyField(field string) *hostQuery {
 }
 
 // Include this in a call to ProxySQL to specify 'hostgroup_id' in a query
-func Hostgroup(h int) hostOpts {
+func HostgroupID(h int) hostOpts {
 	return func(opts *hostQuery) *hostQuery {
-		return opts.Hostgroup(h)
+		return opts.HostgroupID(h)
 	}
 }
 
@@ -191,7 +191,7 @@ func (q *hostQuery) Table(t string) *hostQuery {
 	return q
 }
 
-func (q *hostQuery) Hostgroup(h int) *hostQuery {
+func (q *hostQuery) HostgroupID(h int) *hostQuery {
 	q.host.hostgroup_id = h
 	return q.specifyField("hostgroup_id")
 }

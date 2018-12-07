@@ -102,9 +102,9 @@ func TestAllReturnsAllEntries(t *testing.T) {
 	}
 	t.Log("inserting into ProxySQL")
 	insertedEntries := []*Host{
-		defaultHost().Hostname("hostname1"),
-		defaultHost().Hostname("hostname2").Port(3307),
-		defaultHost().Hostname("hostname3").Port(3305),
+		defaultHost().SetHostname("hostname1"),
+		defaultHost().SetHostname("hostname2").SetPort(3307),
+		defaultHost().SetHostname("hostname3").SetPort(3305),
 	}
 	err = conn.AddHosts(insertedEntries...)
 	entries, err := conn.All()
@@ -232,14 +232,14 @@ func TestAddHostAddsAHost(t *testing.T) {
 	}
 }
 
-func TestAddHostAddsAHostToHostgroup(t *testing.T) {
+func TestAddHostAddsAHostToHostgroupID(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	err = conn.AddHost(Hostname("some-host"), Hostgroup(1))
+	err = conn.AddHost(Hostname("some-host"), HostgroupID(1))
 	if err != nil {
 		t.Logf("unexpected err adding host: %v", err)
 		t.Fail()
@@ -258,7 +258,7 @@ func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	err = conn.AddHost(Hostname("some-host"), Hostgroup(1), Port(-1))
+	err = conn.AddHost(Hostname("some-host"), HostgroupID(1), Port(-1))
 	if err != ErrConfigBadPort {
 		t.Logf("did not receive err about bad port: %v", err)
 		t.Fail()
@@ -304,7 +304,7 @@ func TestRemoveHostRemovesAHost(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	host := defaultHost().Hostname("some-host").Hostgroup(0)
+	host := defaultHost().SetHostname("some-host").SetHostgroupID(0)
 	err = conn.AddHosts(host)
 	if err != nil {
 		t.Fatalf("err setting up test: %v", err)
@@ -335,9 +335,9 @@ func TestRemoveHostsLikeRemovesHostsLike(t *testing.T) {
 	}
 	conn.AddHost(Hostname("a"))
 	conn.AddHost(Hostname("b"))
-	conn.AddHost(Hostname("b"), Hostgroup(1))
-	conn.AddHost(Hostname("c"), Hostgroup(1))
-	conn.RemoveHostsLike(Hostgroup(1))
+	conn.AddHost(Hostname("b"), HostgroupID(1))
+	conn.AddHost(Hostname("c"), HostgroupID(1))
+	conn.RemoveHostsLike(HostgroupID(1))
 	entries, err := conn.All()
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].hostname < entries[j].hostname
@@ -353,8 +353,8 @@ func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	err = conn.RemoveHostsLike(Hostgroup(-1))
-	if err != ErrConfigBadHostgroup {
+	err = conn.RemoveHostsLike(HostgroupID(-1))
+	if err != ErrConfigBadHostgroupID {
 		t.Fatalf("did not receive validation error on bad param: %v", err)
 	}
 
@@ -362,7 +362,7 @@ func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
 	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
 		return nil, mockErr
 	}
-	err = conn.RemoveHostsLike(Hostgroup(1))
+	err = conn.RemoveHostsLike(HostgroupID(1))
 	if err != mockErr {
 		t.Fatalf("did not propogate execution error: %v", err)
 	}
@@ -375,8 +375,8 @@ func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
-	conn.AddHost(Hostname("b"), Hostgroup(1))
-	conn.AddHost(Hostname("c"), Hostgroup(1))
+	conn.AddHost(Hostname("b"), HostgroupID(1))
+	conn.AddHost(Hostname("c"), HostgroupID(1))
 	entries, _ := conn.All()
 	conn.RemoveHosts(entries...)
 	entries, _ = conn.All()
@@ -406,11 +406,11 @@ func TestHostsLike(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	conn.AddHost(Hostname("hostname3"), Hostgroup(3))
-	conn.AddHost(Hostname("hostname1"), Hostgroup(1))
-	conn.AddHost(Hostname("hostname2"), Hostgroup(1))
+	conn.AddHost(Hostname("hostname3"), HostgroupID(3))
+	conn.AddHost(Hostname("hostname1"), HostgroupID(1))
+	conn.AddHost(Hostname("hostname2"), HostgroupID(1))
 
-	hosts, err := conn.HostsLike(Hostgroup(1))
+	hosts, err := conn.HostsLike(HostgroupID(1))
 	if err != nil {
 		t.Fatalf("err checking existence of host: %v", err)
 	}
@@ -429,15 +429,15 @@ func TestHostsLikeReturnsErrorOnRowScanError(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	conn.AddHost(Hostname("hostname1"), Hostgroup(1))
-	conn.AddHost(Hostname("hostname2"), Hostgroup(1))
+	conn.AddHost(Hostname("hostname1"), HostgroupID(1))
+	conn.AddHost(Hostname("hostname2"), HostgroupID(1))
 
 	mockErr := errors.New("mock")
 	scanRows = func(_ *sql.Rows, _ ...interface{}) error {
 		return mockErr
 	}
 
-	hosts, err := conn.HostsLike(Hostgroup(1))
+	hosts, err := conn.HostsLike(HostgroupID(1))
 
 	if err != mockErr {
 		t.Fatalf("did not receive error when scanRows returned error: %v", err)
@@ -457,15 +457,15 @@ func TestHostsLikeReturnsErrorOnRowsError(t *testing.T) {
 		t.Fatal("bad dsn")
 	}
 
-	conn.AddHost(Hostname("hostname1"), Hostgroup(1))
-	conn.AddHost(Hostname("hostname2"), Hostgroup(1))
+	conn.AddHost(Hostname("hostname1"), HostgroupID(1))
+	conn.AddHost(Hostname("hostname2"), HostgroupID(1))
 
 	mockErr := errors.New("mock")
 	rowsErr = func(_ *sql.Rows) error {
 		return mockErr
 	}
 
-	hosts, err := conn.HostsLike(Hostgroup(1))
+	hosts, err := conn.HostsLike(HostgroupID(1))
 
 	if err != mockErr {
 		t.Fatalf("did not receive error when scanRows returned error: %v", err)
@@ -547,9 +547,9 @@ func TestPersistChangesLoadsConfigurationToRuntime(t *testing.T) {
 	}
 	// make entries map compare to runtime_servers.All()
 	entries := []*Host{
-		defaultHost().Hostname("reader1").Hostgroup(1),
-		defaultHost().Hostname("reader2").Hostgroup(1),
-		defaultHost().Hostname("writer").Hostgroup(0),
+		defaultHost().SetHostname("reader1").SetHostgroupID(1),
+		defaultHost().SetHostname("reader2").SetHostgroupID(1),
+		defaultHost().SetHostname("writer").SetHostgroupID(0),
 	}
 	t.Log("inserting into ProxySQL")
 	conn.AddHosts(entries...)
@@ -598,7 +598,7 @@ func TestAddHostWithAllConfigurationsAddsAHostConfigured(t *testing.T) {
 		max_latency_ms      = 1
 		comment             = ":)"
 	)
-	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), Hostgroup(hostgroup_id), Status(status), Weight(weight), Compression(compression), MaxReplicationLag(max_replication_lag), UseSSL(use_ssl), MaxLatencyMS(max_latency_ms), Comment(comment))
+	err = conn.AddHost(Table("mysql_servers"), Port(port), Hostname(hostname), MaxConnections(max_connections), HostgroupID(hostgroup_id), Status(status), Weight(weight), Compression(compression), MaxReplicationLag(max_replication_lag), UseSSL(use_ssl), MaxLatencyMS(max_latency_ms), Comment(comment))
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}

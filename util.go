@@ -10,7 +10,7 @@ type vOpts func(*hostQuery) error
 
 var (
 	ErrConfigBadTable             = errors.New("Bad table value, must be one of 'mysql_servers', 'runtime_mysql_servers'")
-	ErrConfigBadHostgroup         = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
+	ErrConfigBadHostgroupID       = errors.New("Bad hostgroup value, must be in [0, 2147483648]")
 	ErrConfigBadPort              = errors.New("Bad port value, must be in [0, 65535]")
 	ErrConfigBadMaxConnections    = errors.New("Bad max_connections value, must be > 0")
 	ErrConfigBadStatus            = errors.New("Bad status value, must be one of 'ONLINE','SHUNNED','OFFLINE_SOFT', 'OFFLINE_HARD'")
@@ -28,7 +28,7 @@ var (
 func init() {
 	// add all validators to the validation array for validateHostQuery
 	validationFuncs = append(validationFuncs, validateTableOpts)
-	validationFuncs = append(validationFuncs, validateHostgroup)
+	validationFuncs = append(validationFuncs, validateHostgroupID)
 	validationFuncs = append(validationFuncs, validatePort)
 	validationFuncs = append(validationFuncs, validateMaxConnections)
 	validationFuncs = append(validationFuncs, validateStatus)
@@ -51,9 +51,9 @@ func validateTable(t string) error {
 	return nil
 }
 
-func validateHostgroup(opts *hostQuery) error {
+func validateHostgroupID(opts *hostQuery) error {
 	if opts.host.hostgroup_id < 0 || opts.host.hostgroup_id > 2147483648 {
-		return ErrConfigBadHostgroup
+		return ErrConfigBadHostgroupID
 	}
 	return nil
 }

@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = conn.AddHost(Hostname("example"), Hostgroup(1))
+	err = conn.AddHost(Hostname("example"), HostgroupID(1))
 	if err != nil {
 		log.Fatal(err)
 	}
