@@ -5,7 +5,7 @@ import (
 )
 
 func TestValues(t *testing.T) {
-	h := defaultHost().SetHostname("hn").SetPort(3307)
+	h := DefaultHost().SetHostname("hn").SetPort(3307)
 	s := h.values()
 	t.Logf("string built: %s", s)
 	if s != "(0, 'hn', 3307, 'ONLINE', 1, 0, 1000, 0, 0, 0, '')" {
@@ -14,7 +14,7 @@ func TestValues(t *testing.T) {
 }
 
 func TestColumns(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	s := h.columns()
 	t.Logf("string built: %s", s)
 	if s != "(hostgroup_id, hostname, port, status, weight, compression, max_connections, max_replication_lag, use_ssl, max_latency_ms, comment)" {
@@ -23,7 +23,7 @@ func TestColumns(t *testing.T) {
 }
 
 func TestSetGetHostname(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := "a host"
 	h.SetHostname(ex)
 	if h.Hostname() != ex || h.hostname != ex {
@@ -32,7 +32,7 @@ func TestSetGetHostname(t *testing.T) {
 }
 
 func TestSetGetPort(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 3307
 	h.SetPort(ex)
 	if h.Port() != ex || h.port != ex {
@@ -41,7 +41,7 @@ func TestSetGetPort(t *testing.T) {
 }
 
 func TestSetGetHostgroupID(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 2
 	h.SetHostgroupID(ex)
 	if h.HostgroupID() != ex || h.hostgroup_id != ex {
@@ -50,7 +50,7 @@ func TestSetGetHostgroupID(t *testing.T) {
 }
 
 func TestSetGetStatus(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := "OFFLINE_SOFT"
 	h.SetStatus(ex)
 	if h.Status() != ex || h.status != ex {
@@ -59,7 +59,7 @@ func TestSetGetStatus(t *testing.T) {
 }
 
 func TestSetGetWeight(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 2
 	h.SetWeight(ex)
 	if h.Weight() != ex || h.weight != ex {
@@ -68,7 +68,7 @@ func TestSetGetWeight(t *testing.T) {
 }
 
 func TestSetGetCompression(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 10
 	h.SetCompression(ex)
 	if h.Compression() != ex || h.compression != ex {
@@ -77,7 +77,7 @@ func TestSetGetCompression(t *testing.T) {
 }
 
 func TestSetGetMaxConnections(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 300
 	h.SetMaxConnections(ex)
 	if h.MaxConnections() != ex || h.max_connections != ex {
@@ -86,7 +86,7 @@ func TestSetGetMaxConnections(t *testing.T) {
 }
 
 func TestSetGetMaxReplicationLag(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 900
 	h.SetMaxReplicationLag(ex)
 	if h.MaxReplicationLag() != ex || h.max_replication_lag != ex {
@@ -95,7 +95,7 @@ func TestSetGetMaxReplicationLag(t *testing.T) {
 }
 
 func TestSetGetUseSSL(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 1
 	h.SetUseSSL(ex)
 	if h.UseSSL() != ex || h.use_ssl != ex {
@@ -104,7 +104,7 @@ func TestSetGetUseSSL(t *testing.T) {
 }
 
 func TestSetGetMaxLatencyMS(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := 900
 	h.SetMaxLatencyMS(ex)
 	if h.MaxLatencyMS() != ex || h.max_latency_ms != ex {
@@ -113,7 +113,7 @@ func TestSetGetMaxLatencyMS(t *testing.T) {
 }
 
 func TestSetGetComment(t *testing.T) {
-	h := defaultHost()
+	h := DefaultHost()
 	ex := "a comment"
 	h.SetComment(ex)
 	if h.Comment() != ex || h.comment != ex {
@@ -122,7 +122,7 @@ func TestSetGetComment(t *testing.T) {
 }
 
 func TestWhere(t *testing.T) {
-	h := defaultHost().SetHostname("hn").SetPort(3307).SetHostgroupID(1)
+	h := DefaultHost().SetHostname("hn").SetPort(3307).SetHostgroupID(1)
 	s := h.where()
 	t.Logf("string built: %s", s)
 	if s != "hostgroup_id = 1 and hostname = 'hn' and port = 3307 and status = 'ONLINE' and weight = 1 and compression = 0 and max_connections = 1000 and max_replication_lag = 0 and use_ssl = 0 and max_latency_ms = 0 and comment = ''" {
@@ -131,7 +131,7 @@ func TestWhere(t *testing.T) {
 }
 
 func TestValid(t *testing.T) {
-	if defaultHost().SetHostname("hn").SetPort(-1).Valid() != ErrConfigBadPort {
+	if DefaultHost().SetHostname("hn").SetPort(-1).Valid() != ErrConfigBadPort {
 		t.Fatal("host valid did not error expectedly")
 	}
 }

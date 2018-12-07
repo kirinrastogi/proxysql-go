@@ -20,6 +20,23 @@ type Host struct {
 	comment             string
 }
 
+// hostname is the only non default value
+func DefaultHost() *Host {
+	return &Host{
+		0,        // hostgroup_id
+		"",       // hostname
+		3306,     // port
+		"ONLINE", // status
+		1,        // weight
+		0,        // compression
+		1000,     // max_connections
+		0,        // max_replication_lag
+		0,        // use_ssl
+		0,        // max_latency_ms
+		"",       // comment
+	}
+}
+
 func (h *Host) SetHostname(hn string) *Host {
 	h.hostname = hn
 	return h

@@ -246,28 +246,11 @@ func (q *hostQuery) Comment(c string) *hostQuery {
 	return q.specifyField("comment")
 }
 
-// hostname is the only non default value
-func defaultHost() *Host {
-	return &Host{
-		0,        // hostgroup_id
-		"",       // hostname
-		3306,     // port
-		"ONLINE", // status
-		1,        // weight
-		0,        // compression
-		1000,     // max_connections
-		0,        // max_replication_lag
-		0,        // use_ssl
-		0,        // max_latency_ms
-		"",       // comment
-	}
-}
-
 // should have all zero values set
 func defaultHostQuery() *hostQuery {
 	return &hostQuery{
 		table: "mysql_servers",
-		host:  defaultHost(),
+		host:  DefaultHost(),
 	}
 }
 

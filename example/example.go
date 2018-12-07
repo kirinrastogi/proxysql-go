@@ -24,6 +24,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = conn.AddHosts(DefaultHost().SetHostname("example2"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	err = conn.PersistChanges()
 	if err != nil {
 		log.Fatal(err)
