@@ -20,7 +20,9 @@ type Host struct {
 	comment             string
 }
 
-// hostname is the only non default value
+// Returns a default host (in terms of the mysql_servers table).
+//
+// Note that hostname is left empty
 func DefaultHost() *Host {
 	return &Host{
 		0,        // hostgroup_id
@@ -37,56 +39,67 @@ func DefaultHost() *Host {
 	}
 }
 
+// Set hostname
 func (h *Host) SetHostname(hn string) *Host {
 	h.hostname = hn
 	return h
 }
 
+// Set port
 func (h *Host) SetPort(p int) *Host {
 	h.port = p
 	return h
 }
 
+// Set hostgroup_id
 func (h *Host) SetHostgroupID(hg int) *Host {
 	h.hostgroup_id = hg
 	return h
 }
 
+// Set status
 func (h *Host) SetStatus(s string) *Host {
 	h.status = s
 	return h
 }
 
+// Set weight
 func (h *Host) SetWeight(w int) *Host {
 	h.weight = w
 	return h
 }
 
+// Set compression
 func (h *Host) SetCompression(c int) *Host {
 	h.compression = c
 	return h
 }
 
+// Set max_connections
 func (h *Host) SetMaxConnections(m int) *Host {
 	h.max_connections = m
 	return h
 }
 
+// Set max_replication_lag
 func (h *Host) SetMaxReplicationLag(m int) *Host {
 	h.max_replication_lag = m
 	return h
 }
 
+// Set use_ssl
 func (h *Host) SetUseSSL(u int) *Host {
 	h.use_ssl = u
 	return h
 }
 
+// Set max_latency_ms
 func (h *Host) SetMaxLatencyMS(m int) *Host {
 	h.max_latency_ms = m
 	return h
 }
 
+// Set comment
 func (h *Host) SetComment(c string) *Host {
 	h.comment = c
 	return h
