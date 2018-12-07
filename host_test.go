@@ -129,3 +129,9 @@ func TestWhere(t *testing.T) {
 		t.Fatalf("string from host.where was not expected: %s", s)
 	}
 }
+
+func TestValid(t *testing.T) {
+	if defaultHost().SetHostname("hn").SetPort(-1).Valid() != ErrConfigBadPort {
+		t.Fatal("host valid did not error expectedly")
+	}
+}

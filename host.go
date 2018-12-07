@@ -119,6 +119,12 @@ func (h *Host) Comment() string {
 	return h.comment
 }
 
+func (h *Host) Valid() error {
+	hq := defaultHostQuery()
+	hq.host = h
+	return validateHostQuery(hq)
+}
+
 func (h *Host) values() string {
 	return fmt.Sprintf("(%d, '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", h.hostgroup_id, h.hostname, h.port, h.status, h.weight, h.compression, h.max_connections, h.max_replication_lag, h.use_ssl, h.max_latency_ms, h.comment)
 }
