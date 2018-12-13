@@ -7,6 +7,12 @@ import (
 	"log"
 )
 
+type ProxySQLConn interface {
+	AddHost(...HostOpts) error
+	AddHosts(...*Host) error
+	PersistChanges() error
+}
+
 func main() {
 	// this is the dsn of the container that ./run.sh creates
 	conn, err := NewProxySQL("remote-admin:password@tcp(localhost:6032)/")
@@ -19,7 +25,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = conn.AddHost(Hostname("example"), HostgroupID(1))
+	AddHostsAndSave(conn)
+
+	entries, err := conn.All()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, entry := range entries {
+		log.Printf("entry: %v\n", entry)
+	}
+}
+
+func AddHostsAndSave(conn ProxySQLConn) {
+	err := conn.AddHost(Hostname("example"), HostgroupID(1))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,14 +51,5 @@ func main() {
 	err = conn.PersistChanges()
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	entries, err := conn.All()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, entry := range entries {
-		log.Printf("entry: %v\n", entry)
 	}
 }
