@@ -13,3 +13,6 @@
 
 # Coverage output
 coverage.txt
+
+# Vendored dependencies
+vendor/
