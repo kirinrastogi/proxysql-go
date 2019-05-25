@@ -1,7 +1,7 @@
 # proxysql-go [![Build Status](https://travis-ci.org/kirinrastogi/proxysql-go.svg?branch=master)](https://travis-ci.org/kirinrastogi/proxysql-go) [![codecov](https://codecov.io/gh/kirinrastogi/proxysql-go/branch/master/graph/badge.svg)](https://codecov.io/gh/kirinrastogi/proxysql-go) [![Documentation](https://godoc.org/github.com/kirinrastogi/proxysql-go?status.svg)](https://godoc.org/github.com/kirinrastogi/proxysql-go/)
 
 
-A packagae for building ProxySQL sidecars in go. Modify ProxySQL's configuration and routing rules on the fly.
+A thread safe package for building ProxySQL sidecars in go. Modify ProxySQL's configuration and routing rules on the fly, and easily write tests for these changes.
 
 # About
 
@@ -10,7 +10,7 @@ You can update ProxySQL's configuration on the fly. While you could send SQL que
 
 # Why
 
-Using this package can help you more easily write tests. Instead of intercepting sql strings similar to
+Using this package can help you more easily write tests. Instead of intercepting SQL queries similar to
 
 ```golang
 db.Query("select * from runtime_mysql_servers")
