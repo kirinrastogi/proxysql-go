@@ -281,6 +281,19 @@ func TestAddHostsReturnsErrorOnError(t *testing.T) {
 	}
 }
 
+func TestAddHostsReturnsErrorBeforeConnectingToProxySQLOnInvalidHost(t *testing.T) {
+	conn, err := NewProxySQL("/")
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	host := DefaultHost().SetHostgroupID(-1)
+	err = conn.AddHosts(host)
+	if err != ErrConfigBadHostgroupID {
+		t.Fatalf("did not get expected error of bad hostgroupid when validating")
+	}
+	t.Log(err)
+}
+
 func TestClearClearsProxySQL(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
 	base := "remote-admin:password@tcp(localhost:%s)/"

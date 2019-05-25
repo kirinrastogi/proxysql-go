@@ -70,10 +70,14 @@ func (p *ProxySQL) AddHost(opts ...HostOpts) error {
 // this will error if any of the hosts are not valid
 // this will propogate error from sql.Exec
 func (p *ProxySQL) AddHosts(hosts ...*Host) error {
+	for _, host := range hosts {
+		if err := host.Valid(); err != nil {
+			return err
+		}
+	}
 	mut.Lock()
 	defer mut.Unlock()
 	for _, host := range hosts {
-		// TODO host validation to fail before it gets to ProxySQL
 		insertQuery := fmt.Sprintf("insert into mysql_servers %s values %s", host.columns(), host.values())
 		_, err := exec(p, insertQuery)
 		if err != nil {
