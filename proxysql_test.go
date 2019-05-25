@@ -30,13 +30,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewSetsDSN(t *testing.T) {
-	p, err := NewProxySQL("dsn")
+	p, err := NewProxySQL("/")
 	if err != nil {
 		t.Logf("unexpected err: %v", err)
 		t.Fail()
 	}
 
-	if p.dsn != "dsn" {
+	if p.dsn != "/" {
 		t.Fatalf("dsn received was not expected: %s", p.dsn)
 	}
 }
@@ -67,7 +67,7 @@ func TestPingSucceedsOnLiveContainer(t *testing.T) {
 }
 
 func TestPingFailsOnDeadContainer(t *testing.T) {
-	conn, err := NewProxySQL("dsn")
+	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
@@ -137,7 +137,7 @@ func TestAllReturnsEmptyMapForEmptyTable(t *testing.T) {
 }
 
 func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
-	conn, err := NewProxySQL("dsn")
+	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatal("bad dsn")
 	}
@@ -349,7 +349,7 @@ func TestRemoveHostsLikeRemovesHostsLike(t *testing.T) {
 
 func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
 	defer resetExec()
-	conn, err := NewProxySQL("dsn")
+	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -387,7 +387,7 @@ func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
 
 func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
 	defer resetExec()
-	conn, _ := NewProxySQL("dsn")
+	conn, _ := NewProxySQL("/")
 	mockErr := errors.New("mock")
 	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
 		return nil, mockErr
@@ -478,7 +478,7 @@ func TestHostsLikeReturnsErrorOnRowsError(t *testing.T) {
 
 func TestHostsLikeParseErrorAndQueryErrorReturnErrors(t *testing.T) {
 	defer resetQuery()
-	conn, err := NewProxySQL("dsn")
+  conn, err := NewProxySQL("/")
 	_, err = conn.HostsLike(Port(-1))
 	if err != ErrConfigBadPort {
 		t.Fatalf("did not receive expected error on supplying bad parameters to HostsLike: %v", err)
