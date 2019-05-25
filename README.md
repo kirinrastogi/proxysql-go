@@ -8,22 +8,6 @@ A thread safe package for building ProxySQL sidecars in go. Modify ProxySQL's co
 Proxysql-go is a package designed to help you build your own service discovery for ProxySQL.
 You can update ProxySQL's configuration on the fly. While you could send SQL queries to it yourself, those are hard to mock and test. This package allows you to update it with functions, and then mock and test your code that uses these functions.
 
-# Why
-
-Using this package can help you more easily write tests. Instead of intercepting SQL queries similar to
-
-```golang
-db.Query("select * from runtime_mysql_servers")
-```
-
-and stubbing the call, you can more easily mock the following call, provided you defined your own interface
-
-```golang
-conn.All()
-```
-
-See the ensuing folder for an example of testing and mocking
-
 # Use
 
 Example located [here](https://github.com/kirinrastogi/proxysql-go/blob/master/example)
