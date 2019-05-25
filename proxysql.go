@@ -54,7 +54,7 @@ func (p *ProxySQL) PersistChanges() error {
 // with that configuration. This will return an error when a validation error
 // of the configuration you specified occurs.
 // This will propogate errors from sql.Exec as well
-func (p *ProxySQL) AddHost(opts ...hostOpts) error {
+func (p *ProxySQL) AddHost(opts ...HostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
 	hostq, err := buildAndParseHostQueryWithHostname(opts...)
@@ -104,7 +104,7 @@ func (p *ProxySQL) RemoveHost(host *Host) error {
 // RemoveHostsLike will remove all hosts that match the specified configuration
 // This will error if configuration does not pass validation
 // This will propogate error from sql.Exec
-func (p *ProxySQL) RemoveHostsLike(opts ...hostOpts) error {
+func (p *ProxySQL) RemoveHostsLike(opts ...HostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
 	hostq, err := buildAndParseHostQuery(opts...)
@@ -135,7 +135,7 @@ func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
 // HostsLike will return all hosts that match the given configuration
 // This will error on configuration validation failing
 // This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
-func (p *ProxySQL) HostsLike(opts ...hostOpts) ([]*Host, error) {
+func (p *ProxySQL) HostsLike(opts ...HostOpts) ([]*Host, error) {
 	mut.RLock()
 	defer mut.RUnlock()
 	hostq, err := buildAndParseHostQuery(opts...)
@@ -181,7 +181,7 @@ func (p *ProxySQL) HostsLike(opts ...hostOpts) ([]*Host, error) {
 // this with All(Table("runtime_mysql_servers"))
 // or just All() for "mysql_servers"
 // This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
-func (p *ProxySQL) All(opts ...hostOpts) ([]*Host, error) {
+func (p *ProxySQL) All(opts ...HostOpts) ([]*Host, error) {
 	// TODO: validation that only Table() was called
 	hostq, err := buildAndParseHostQuery(opts...)
 	if err != nil {

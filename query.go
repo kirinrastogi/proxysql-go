@@ -22,7 +22,7 @@ type hostQuery struct {
 	specifiedFields []string
 }
 
-type hostOpts func(*hostQuery) *hostQuery
+type HostOpts func(*hostQuery) *hostQuery
 
 // given a slice of fields
 // returns a string like (sv_1, sv_2, sv_3)
@@ -100,7 +100,7 @@ func (opts *hostQuery) specifyField(field string) *hostQuery {
 }
 
 // Include this in a call to ProxySQL to specify 'hostgroup_id' in a query
-func HostgroupID(h int) hostOpts {
+func HostgroupID(h int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.HostgroupID(h)
 	}
@@ -108,77 +108,77 @@ func HostgroupID(h int) hostOpts {
 
 // Include this in a call to ProxySQL to specify
 // 'mysql_servers' or 'runtime_mysql_servers' in a query
-func Table(t string) hostOpts {
+func Table(t string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Table(t)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'port' in a query
-func Port(p int) hostOpts {
+func Port(p int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Port(p)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'hostname' in a query
-func Hostname(h string) hostOpts {
+func Hostname(h string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Hostname(h)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'max_connections' in a query
-func MaxConnections(c int) hostOpts {
+func MaxConnections(c int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.MaxConnections(c)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'status' in a query
-func Status(s string) hostOpts {
+func Status(s string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Status(s)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'weight' in a query
-func Weight(w int) hostOpts {
+func Weight(w int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Weight(w)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'compression' in a query
-func Compression(c int) hostOpts {
+func Compression(c int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Compression(c)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'max_replication_lag' in a query
-func MaxReplicationLag(m int) hostOpts {
+func MaxReplicationLag(m int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.MaxReplicationLag(m)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'use_ssl' in a query
-func UseSSL(u int) hostOpts {
+func UseSSL(u int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.UseSSL(u)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'max_latency_ms' in a query
-func MaxLatencyMS(m int) hostOpts {
+func MaxLatencyMS(m int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.MaxLatencyMS(m)
 	}
 }
 
 // Include this in a call to ProxySQL to specify 'comment' in a query
-func Comment(c string) hostOpts {
+func Comment(c string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Comment(c)
 	}
@@ -254,7 +254,7 @@ func defaultHostQuery() *hostQuery {
 	}
 }
 
-func buildAndParseHostQuery(setters ...hostOpts) (*hostQuery, error) {
+func buildAndParseHostQuery(setters ...HostOpts) (*hostQuery, error) {
 	opts := defaultHostQuery()
 	for _, setter := range setters {
 		setter(opts)
@@ -269,7 +269,7 @@ func buildAndParseHostQuery(setters ...hostOpts) (*hostQuery, error) {
 }
 
 // same as above but mandatory hostname
-func buildAndParseHostQueryWithHostname(setters ...hostOpts) (*hostQuery, error) {
+func buildAndParseHostQueryWithHostname(setters ...HostOpts) (*hostQuery, error) {
 	opts, err := buildAndParseHostQuery(setters...)
 	if err != nil {
 		return nil, err
