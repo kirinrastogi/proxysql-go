@@ -22,11 +22,11 @@ and stubbing the call, you can more easily mock the following call, provided you
 conn.All()
 ```
 
-See the ensuing file for an example of testing and mocking
+See the ensuing folder for an example of testing and mocking
 
 # Use
 
-Example located [here](https://github.com/kirinrastogi/proxysql-go/blob/master/example/example.go)
+Example located [here](https://github.com/kirinrastogi/proxysql-go/blob/master/example)
 
 ### Install the package
 
