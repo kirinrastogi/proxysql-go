@@ -35,21 +35,24 @@ func main() {
 	for _, entry := range entries {
 		log.Printf("entry: %v\n", entry)
 	}
+
+	log.Println("Success")
 }
 
-func AddHostsAndSave(conn ProxySQLConn) {
+func AddHostsAndSave(conn ProxySQLConn) error {
 	err := conn.AddHost(Hostname("example"), HostgroupID(1))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = conn.AddHosts(DefaultHost().SetHostname("example2"))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = conn.PersistChanges()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
