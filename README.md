@@ -30,7 +30,7 @@ Example located [here](https://github.com/kirinrastogi/proxysql-go/blob/master/e
 
 ### Install the package
 
-```bash
+```
 go get github.com/kirinrastogi/proxysql-go
 ```
 
@@ -64,14 +64,20 @@ if err != nil {...}
 
 You must have docker installed with privileged access.
 
-Run the tests with
+To install code dependencies type
 
-```bash
+```
+dep ensure -v
+```
+
+Then, run the tests with
+
+```
 go test
 ```
 
-You can run tests that don't require docker with
+Alternatively, you can run tests that don't require docker with
 
-```bash
+```
 go test -short
 ```
