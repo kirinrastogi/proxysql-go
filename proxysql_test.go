@@ -45,7 +45,7 @@ func TestNewErrorsOnSqlOpenError(t *testing.T) {
 	open = func(driver string, dsn string) (*sql.DB, error) {
 		return nil, errors.New("Error creating connection pool")
 	}
-	defer resetOpen()
+	defer resetHelpers()
 	_, err := NewProxySQL("some-dsn")
 	if err == nil {
 		t.Log("New did not propogate err")
@@ -152,7 +152,7 @@ func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
 }
 
 func TestAllErrorsOnQueryError(t *testing.T) {
-	defer resetQuery()
+	defer resetHelpers()
 	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatal("bad dsn")
@@ -169,7 +169,7 @@ func TestAllErrorsOnQueryError(t *testing.T) {
 
 func TestAllErrorsOnScanError(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
-	defer resetScanRows()
+	defer resetHelpers()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
@@ -191,7 +191,7 @@ func TestAllErrorsOnScanError(t *testing.T) {
 
 func TestAllErrorsOnRowsError(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
-	defer resetRowsErr()
+	defer resetHelpers()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
@@ -266,7 +266,7 @@ func TestAddHostReturnsErrorOnBadConfig(t *testing.T) {
 }
 
 func TestAddHostsReturnsErrorOnError(t *testing.T) {
-	defer resetExec()
+	defer resetHelpers()
 	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatal("bad dsn")
@@ -361,7 +361,7 @@ func TestRemoveHostsLikeRemovesHostsLike(t *testing.T) {
 }
 
 func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
-	defer resetExec()
+	defer resetHelpers()
 	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -399,7 +399,7 @@ func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
 }
 
 func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
-	defer resetExec()
+	defer resetHelpers()
 	conn, _ := NewProxySQL("/")
 	mockErr := errors.New("mock")
 	exec = func(_ *ProxySQL, _ string, _ ...interface{}) (sql.Result, error) {
@@ -435,7 +435,7 @@ func TestHostsLike(t *testing.T) {
 
 func TestHostsLikeReturnsErrorOnRowScanError(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
-	defer resetScanRows()
+	defer resetHelpers()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
@@ -463,7 +463,7 @@ func TestHostsLikeReturnsErrorOnRowScanError(t *testing.T) {
 
 func TestHostsLikeReturnsErrorOnRowsError(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
-	defer resetRowsErr()
+	defer resetHelpers()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
@@ -490,7 +490,7 @@ func TestHostsLikeReturnsErrorOnRowsError(t *testing.T) {
 }
 
 func TestHostsLikeParseErrorAndQueryErrorReturnErrors(t *testing.T) {
-	defer resetQuery()
+	defer resetHelpers()
 	conn, err := NewProxySQL("/")
 	_, err = conn.HostsLike(Port(-1))
 	if err != ErrConfigBadPort {
@@ -508,7 +508,7 @@ func TestHostsLikeParseErrorAndQueryErrorReturnErrors(t *testing.T) {
 }
 
 func TestPersistChangesErrorsOnSave(t *testing.T) {
-	defer resetExec()
+	defer resetHelpers()
 	conn, err := NewProxySQL("/")
 	if err != nil {
 		t.Fatal("bad dsn")
@@ -529,7 +529,7 @@ func TestPersistChangesErrorsOnSave(t *testing.T) {
 
 func TestPersistChangesErrorsOnLoad(t *testing.T) {
 	defer SetupAndTeardownProxySQL(t)()
-	defer resetExec()
+	defer resetHelpers()
 	base := "remote-admin:password@tcp(localhost:%s)/"
 	conn, err := NewProxySQL(fmt.Sprintf(base, proxysqlContainer.GetPort("6032/tcp")))
 	if err != nil {
@@ -704,28 +704,4 @@ func SetupProxySQL(t *testing.T) {
 
 func resetOpen() {
 	open = sql.Open
-}
-
-func resetExec() {
-	exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
-		return p.conn.Exec(queryString)
-	}
-}
-
-func resetQuery() {
-	query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
-		return p.conn.Query(queryString)
-	}
-}
-
-func resetScanRows() {
-	scanRows = func(rs *sql.Rows, dest ...interface{}) error {
-		return rs.Scan(dest...)
-	}
-}
-
-func resetRowsErr() {
-	rowsErr = func(rs *sql.Rows) error {
-		return rs.Err()
-	}
 }
