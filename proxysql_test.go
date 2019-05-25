@@ -151,6 +151,19 @@ func TestAllErrorsOnParseErrorOfTable(t *testing.T) {
 	}
 }
 
+// Only proxysql.All(Table("name")) is allowed, no other opts
+func TestAllErrorsWhenQueryOptsAdded(t *testing.T) {
+	conn, err := NewProxySQL("/")
+	if err != nil {
+		t.Fatal("bad dsn")
+	}
+	_, err = conn.All(Table("runtime_mysql_servers"), HostgroupID(1))
+	if err == nil {
+		t.Fatalf("did not get error when specifying hostgroup_id")
+	}
+	t.Log(err)
+}
+
 func TestAllErrorsOnQueryError(t *testing.T) {
 	defer resetQuery()
 	conn, err := NewProxySQL("/")

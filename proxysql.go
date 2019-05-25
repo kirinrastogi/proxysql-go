@@ -4,6 +4,7 @@ package proxysql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"sync"
@@ -186,10 +187,12 @@ func (p *ProxySQL) HostsLike(opts ...HostOpts) ([]*Host, error) {
 // or just All() for "mysql_servers"
 // This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
 func (p *ProxySQL) All(opts ...HostOpts) ([]*Host, error) {
-	// TODO: validation that only Table() was called
 	hostq, err := buildAndParseHostQuery(opts...)
 	if err != nil {
 		return nil, err
+	}
+	if len(hostq.specifiedFields) != 0 {
+		return nil, errors.New("Only specify Table when calling function All")
 	}
 	mut.RLock()
 	defer mut.RUnlock()
