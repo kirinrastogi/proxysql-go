@@ -478,7 +478,7 @@ func TestHostsLikeReturnsErrorOnRowsError(t *testing.T) {
 
 func TestHostsLikeParseErrorAndQueryErrorReturnErrors(t *testing.T) {
 	defer resetQuery()
-  conn, err := NewProxySQL("/")
+	conn, err := NewProxySQL("/")
 	_, err = conn.HostsLike(Port(-1))
 	if err != ErrConfigBadPort {
 		t.Fatalf("did not receive expected error on supplying bad parameters to HostsLike: %v", err)
