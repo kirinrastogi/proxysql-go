@@ -3,17 +3,8 @@ package proxysql
 // this file is to show the entrypoint
 
 import (
-	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 )
-
-type sqlOpen func(string, string) (*sql.DB, error)
-
-var open sqlOpen
-
-func init() {
-	open = sql.Open
-}
 
 // NewProxySQL will create & return a pointer to a ProxySQL struct.
 //

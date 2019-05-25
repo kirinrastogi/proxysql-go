@@ -15,6 +15,10 @@ type ProxySQL struct {
 	conn *sql.DB
 }
 
+func init() {
+	resetHelpers()
+}
+
 var mut sync.RWMutex
 
 // Ping is a convenience function that calls the database/sql function on the
@@ -35,7 +39,8 @@ func (p *ProxySQL) Conn() *sql.DB {
 }
 
 // PersistChanges saves the mysql servers config to disk, and then loads it
-// to the runtime. This must be called for ProxySQL's changes to take effect
+// to the runtime. This must be called for ProxySQL's staged changes in the
+// mysql_servers table to take effect and transfer to runtime_mysql_servers
 // This propogates errors from sql.Exec
 func (p *ProxySQL) PersistChanges() error {
 	mut.Lock()
@@ -230,20 +235,25 @@ func (p *ProxySQL) All(opts ...HostOpts) ([]*Host, error) {
 	return entries, nil
 }
 
-// TODO put these in an init() boi, so its easy to reset in tests
 // wrappers around standard sql funcs for testing
-var exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
-	return p.conn.Exec(queryString)
-}
+var exec func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error)
+var query func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error)
+var scanRows func(rs *sql.Rows, dest ...interface{}) error
+var rowsErr func(rs *sql.Rows) error
+var open func(string, string) (*sql.DB, error)
 
-var query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
-	return p.conn.Query(queryString)
-}
-
-var scanRows = func(rs *sql.Rows, dest ...interface{}) error {
-	return rs.Scan(dest...)
-}
-
-var rowsErr = func(rs *sql.Rows) error {
-	return rs.Err()
+func resetHelpers() {
+	exec = func(p *ProxySQL, queryString string, _ ...interface{}) (sql.Result, error) {
+		return p.conn.Exec(queryString)
+	}
+	query = func(p *ProxySQL, queryString string, _ ...interface{}) (*sql.Rows, error) {
+		return p.conn.Query(queryString)
+	}
+	scanRows = func(rs *sql.Rows, dest ...interface{}) error {
+		return rs.Scan(dest...)
+	}
+	rowsErr = func(rs *sql.Rows) error {
+		return rs.Err()
+	}
+	open = sql.Open
 }
