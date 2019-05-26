@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+// ProxySQLConn is an example interface to accept as a parameter to funcs
+// instead of actual sql.DB connections
 type ProxySQLConn interface {
 	AddHost(...HostOpts) error
 	AddHosts(...*Host) error
