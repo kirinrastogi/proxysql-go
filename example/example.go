@@ -25,7 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	AddHostsAndSave(conn)
+	addHostsAndSave(conn)
 
 	entries, err := conn.All()
 	if err != nil {
@@ -39,7 +39,7 @@ func main() {
 	log.Println("Success")
 }
 
-func AddHostsAndSave(conn ProxySQLConn) error {
+func addHostsAndSave(conn ProxySQLConn) error {
 	err := conn.AddHost(Hostname("example"), HostgroupID(1))
 	if err != nil {
 		return err

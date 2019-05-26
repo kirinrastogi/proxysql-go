@@ -4,11 +4,11 @@ import (
 	"testing"
 )
 
-// Test functionality of AddHostsAndSave
+// Test functionality of addHostsAndSave
 func TestAddHostsAndSaveErrorsOnConnectionFailure(t *testing.T) {
 	mock := NewProxySQLMock()
 	mock.healthy = false
-	err := AddHostsAndSave(mock)
+	err := addHostsAndSave(mock)
 	if err == nil {
 		t.Fatal("AddHostsAndSave did not return error on ping fail")
 	}
