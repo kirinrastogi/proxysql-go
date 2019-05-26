@@ -22,6 +22,8 @@ type hostQuery struct {
 	specifiedFields []string
 }
 
+// HostOpts is a type of function that is called with a hostQuery struct to
+// specify a value in a query
 type HostOpts func(*hostQuery) *hostQuery
 
 // given a slice of fields
@@ -99,151 +101,151 @@ func (opts *hostQuery) specifyField(field string) *hostQuery {
 	return opts
 }
 
-// Include this in a call to ProxySQL to specify 'hostgroup_id' in a query
+// HostgroupID sets the 'hostgroup_id' in a query
 func HostgroupID(h int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.HostgroupID(h)
 	}
 }
 
-// Include this in a call to ProxySQL to specify
-// 'mysql_servers' or 'runtime_mysql_servers' in a query
+// Table sets the table in a query
+// One of 'runtime_mysql_servers' or 'mysql_servers'
 func Table(t string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Table(t)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'port' in a query
+// Port sets the 'port' in a query
 func Port(p int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Port(p)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'hostname' in a query
+// Hostname sets the 'hostname' in a query
 func Hostname(h string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Hostname(h)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'max_connections' in a query
+// MaxConnections sets the 'max_connections' in a query
 func MaxConnections(c int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.MaxConnections(c)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'status' in a query
+// Status sets the 'status' in a query
 func Status(s string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Status(s)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'weight' in a query
+// Weight sets the 'weight' in a query
 func Weight(w int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Weight(w)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'compression' in a query
+// Compression sets the 'compression' in a query
 func Compression(c int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Compression(c)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'max_replication_lag' in a query
+// MaxReplicationLag sets the 'max_replication_lag' in a query
 func MaxReplicationLag(m int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.MaxReplicationLag(m)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'use_ssl' in a query
+// UseSSL sets the 'use_ssl' in a query
 func UseSSL(u int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.UseSSL(u)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'max_latency_ms' in a query
+// MaxLatencyMS sets the 'max_latency_ms' in a query
 func MaxLatencyMS(m int) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.MaxLatencyMS(m)
 	}
 }
 
-// Include this in a call to ProxySQL to specify 'comment' in a query
+// Comment sets the 'comment' in a query
 func Comment(c string) HostOpts {
 	return func(opts *hostQuery) *hostQuery {
 		return opts.Comment(c)
 	}
 }
 
-func (q *hostQuery) Table(t string) *hostQuery {
+func (opts *hostQuery) Table(t string) *hostQuery {
 	// don't put it in specifyFields because that slice is used for
 	// building wheres and values
-	q.table = t
-	return q
+	opts.table = t
+	return opts
 }
 
-func (q *hostQuery) HostgroupID(h int) *hostQuery {
-	q.host.hostgroup_id = h
-	return q.specifyField("hostgroup_id")
+func (opts *hostQuery) HostgroupID(h int) *hostQuery {
+	opts.host.hostgroup_id = h
+	return opts.specifyField("hostgroup_id")
 }
 
-func (q *hostQuery) Port(p int) *hostQuery {
-	q.host.port = p
-	return q.specifyField("port")
+func (opts *hostQuery) Port(p int) *hostQuery {
+	opts.host.port = p
+	return opts.specifyField("port")
 }
 
-func (q *hostQuery) Hostname(h string) *hostQuery {
-	q.host.hostname = h
-	return q.specifyField("hostname")
+func (opts *hostQuery) Hostname(h string) *hostQuery {
+	opts.host.hostname = h
+	return opts.specifyField("hostname")
 }
 
-func (q *hostQuery) MaxConnections(c int) *hostQuery {
-	q.host.max_connections = c
-	return q.specifyField("max_connections")
+func (opts *hostQuery) MaxConnections(c int) *hostQuery {
+	opts.host.max_connections = c
+	return opts.specifyField("max_connections")
 }
 
-func (q *hostQuery) Status(s string) *hostQuery {
-	q.host.status = s
-	return q.specifyField("status")
+func (opts *hostQuery) Status(s string) *hostQuery {
+	opts.host.status = s
+	return opts.specifyField("status")
 }
 
-func (q *hostQuery) Weight(w int) *hostQuery {
-	q.host.weight = w
-	return q.specifyField("weight")
+func (opts *hostQuery) Weight(w int) *hostQuery {
+	opts.host.weight = w
+	return opts.specifyField("weight")
 }
 
-func (q *hostQuery) Compression(c int) *hostQuery {
-	q.host.compression = c
-	return q.specifyField("compression")
+func (opts *hostQuery) Compression(c int) *hostQuery {
+	opts.host.compression = c
+	return opts.specifyField("compression")
 }
 
-func (q *hostQuery) MaxReplicationLag(m int) *hostQuery {
-	q.host.max_replication_lag = m
-	return q.specifyField("max_replication_lag")
+func (opts *hostQuery) MaxReplicationLag(m int) *hostQuery {
+	opts.host.max_replication_lag = m
+	return opts.specifyField("max_replication_lag")
 }
 
-func (q *hostQuery) UseSSL(u int) *hostQuery {
-	q.host.use_ssl = u
-	return q.specifyField("use_ssl")
+func (opts *hostQuery) UseSSL(u int) *hostQuery {
+	opts.host.use_ssl = u
+	return opts.specifyField("use_ssl")
 }
 
-func (q *hostQuery) MaxLatencyMS(m int) *hostQuery {
-	q.host.max_latency_ms = m
-	return q.specifyField("max_latency_ms")
+func (opts *hostQuery) MaxLatencyMS(m int) *hostQuery {
+	opts.host.max_latency_ms = m
+	return opts.specifyField("max_latency_ms")
 }
 
-func (q *hostQuery) Comment(c string) *hostQuery {
-	q.host.comment = c
-	return q.specifyField("comment")
+func (opts *hostQuery) Comment(c string) *hostQuery {
+	opts.host.comment = c
+	return opts.specifyField("comment")
 }
 
 // should have all zero values set
