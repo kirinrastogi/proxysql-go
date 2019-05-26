@@ -41,7 +41,7 @@ func (p *ProxySQL) Conn() *sql.DB {
 // PersistChanges saves the mysql servers config to disk, and then loads it
 // to the runtime. This must be called for ProxySQL's staged changes in the
 // mysql_servers table to take effect and transfer to runtime_mysql_servers
-// This propogates errors from sql.Exec
+// This propagates errors from sql.Exec
 func (p *ProxySQL) PersistChanges() error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -59,7 +59,7 @@ func (p *ProxySQL) PersistChanges() error {
 // AddHost takes the configuration provided and inserts a host into ProxySQL
 // with that configuration. This will return an error when a validation error
 // of the configuration you specified occurs.
-// This will propogate errors from sql.Exec as well
+// This will propagate errors from sql.Exec as well
 func (p *ProxySQL) AddHost(opts ...HostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -74,7 +74,7 @@ func (p *ProxySQL) AddHost(opts ...HostOpts) error {
 
 // AddHosts will insert each of the hosts into mysql_servers
 // this will error if any of the hosts are not valid
-// this will propogate error from sql.Exec
+// this will propagate error from sql.Exec
 func (p *ProxySQL) AddHosts(hosts ...*Host) error {
 	for _, host := range hosts {
 		if err := host.Valid(); err != nil {
@@ -102,7 +102,7 @@ func (p *ProxySQL) Clear() error {
 }
 
 // RemoveHost removes the host that matches the provided host's
-// configuration exactly. This will propogate error from sql.Exec
+// configuration exactly. This will propagate error from sql.Exec
 func (p *ProxySQL) RemoveHost(host *Host) error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -113,7 +113,7 @@ func (p *ProxySQL) RemoveHost(host *Host) error {
 
 // RemoveHostsLike will remove all hosts that match the specified configuration
 // This will error if configuration does not pass validation
-// This will propogate error from sql.Exec
+// This will propagate error from sql.Exec
 func (p *ProxySQL) RemoveHostsLike(opts ...HostOpts) error {
 	mut.Lock()
 	defer mut.Unlock()
@@ -127,7 +127,7 @@ func (p *ProxySQL) RemoveHostsLike(opts ...HostOpts) error {
 }
 
 // RemoveHosts is a convenience function that removes hosts in the given slice
-// This will propogate error from RemoveHost, or from sql.Exec
+// This will propagate error from RemoveHost, or from sql.Exec
 func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
 	for _, host := range hosts {
 		err := p.RemoveHost(host)
@@ -144,7 +144,7 @@ func (p *ProxySQL) RemoveHosts(hosts ...*Host) error {
 
 // HostsLike will return all hosts that match the given configuration
 // This will error on configuration validation failing
-// This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
+// This will also propagate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
 func (p *ProxySQL) HostsLike(opts ...HostOpts) ([]*Host, error) {
 	mut.RLock()
 	defer mut.RUnlock()
@@ -190,7 +190,7 @@ func (p *ProxySQL) HostsLike(opts ...HostOpts) ([]*Host, error) {
 // This will error if configuration validation fails, you should only call
 // this with All(Table("runtime_mysql_servers"))
 // or just All() for "mysql_servers"
-// This will also propogate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
+// This will also propagate error from sql.Query, sql.Rows.Scan, sql.Rows.Err
 func (p *ProxySQL) All(opts ...HostOpts) ([]*Host, error) {
 	hostq, err := buildAndParseHostQuery(opts...)
 	if err != nil {
