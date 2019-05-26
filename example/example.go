@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+// ProxySQLConn is an example interface to accept as a parameter to funcs
+// instead of actual sql.DB connections
 type ProxySQLConn interface {
 	AddHost(...HostOpts) error
 	AddHosts(...*Host) error
@@ -25,7 +27,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	AddHostsAndSave(conn)
+	addHostsAndSave(conn)
 
 	entries, err := conn.All()
 	if err != nil {
@@ -39,7 +41,7 @@ func main() {
 	log.Println("Success")
 }
 
-func AddHostsAndSave(conn ProxySQLConn) error {
+func addHostsAndSave(conn ProxySQLConn) error {
 	err := conn.AddHost(Hostname("example"), HostgroupID(1))
 	if err != nil {
 		return err

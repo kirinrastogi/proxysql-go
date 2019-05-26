@@ -1,4 +1,4 @@
-# proxysql-go [![Build Status](https://travis-ci.org/kirinrastogi/proxysql-go.svg?branch=master)](https://travis-ci.org/kirinrastogi/proxysql-go) [![codecov](https://codecov.io/gh/kirinrastogi/proxysql-go/branch/master/graph/badge.svg)](https://codecov.io/gh/kirinrastogi/proxysql-go) [![Documentation](https://godoc.org/github.com/kirinrastogi/proxysql-go?status.svg)](https://godoc.org/github.com/kirinrastogi/proxysql-go/)
+# proxysql-go [![Build Status](https://travis-ci.org/kirinrastogi/proxysql-go.svg?branch=master)](https://travis-ci.org/kirinrastogi/proxysql-go) [![codecov](https://codecov.io/gh/kirinrastogi/proxysql-go/branch/master/graph/badge.svg)](https://codecov.io/gh/kirinrastogi/proxysql-go) [![Documentation](https://godoc.org/github.com/kirinrastogi/proxysql-go?status.svg)](https://godoc.org/github.com/kirinrastogi/proxysql-go/) [![Go Report Card](https://goreportcard.com/badge/github.com/kirinrastogi/proxysql-go)](https://goreportcard.com/report/github.com/kirinrastogi/proxysql-go)
 
 
 A thread safe package for building ProxySQL sidecars in go. Modify ProxySQL's configuration and routing rules on the fly, and easily write tests for these changes.
