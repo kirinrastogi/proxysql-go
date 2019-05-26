@@ -65,7 +65,7 @@ func TestNewErrorsOnSqlOpenError(t *testing.T) {
 	defer resetHelpers()
 	_, err := NewProxySQL("some-dsn")
 	if err == nil {
-		t.Log("New did not propogate err")
+		t.Log("New did not propagate err")
 		t.Fail()
 	}
 }
@@ -345,7 +345,7 @@ func TestRemoveHostsLikeErrorsOnParseOrExecError(t *testing.T) {
 	}
 	err = conn.RemoveHostsLike(HostgroupID(1))
 	if err != mockErr {
-		t.Fatalf("did not propogate execution error: %v", err)
+		t.Fatalf("did not propagate execution error: %v", err)
 	}
 }
 
@@ -362,7 +362,7 @@ func TestRemoveHostsRemovesAllHostsSpecified(t *testing.T) {
 	}
 }
 
-func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
+func TestRemoveHostsPropagatesErrorFromRemoveHost(t *testing.T) {
 	defer resetHelpers()
 	conn := shortSetup(t)
 	mockErr := errors.New("mock")
@@ -371,7 +371,7 @@ func TestRemoveHostsPropogatesErrorFromRemoveHost(t *testing.T) {
 	}
 
 	if err := conn.RemoveHosts(DefaultHost()); err != mockErr {
-		t.Fatalf("unexpected error from RemoveHosts, did not propogate: %v", err)
+		t.Fatalf("unexpected error from RemoveHosts, did not propagate: %v", err)
 	}
 }
 
