@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// Host represents a row in ProxySQL's mysql_servers config table
 type Host struct {
 	hostgroup_id        int
 	hostname            string
@@ -20,8 +21,7 @@ type Host struct {
 	comment             string
 }
 
-// Returns a default host (in terms of the mysql_servers table).
-//
+// DefaultHost returns a default host (in terms of the mysql_servers table).
 // Note that hostname is left empty
 func DefaultHost() *Host {
 	return &Host{

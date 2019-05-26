@@ -116,7 +116,7 @@ func TestAllReturnsAllEntries(t *testing.T) {
 		DefaultHost().SetHostname("hostname2").SetPort(3307),
 		DefaultHost().SetHostname("hostname3").SetPort(3305),
 	}
-	err := conn.AddHosts(insertedEntries...)
+	conn.AddHosts(insertedEntries...)
 	entries, err := conn.All()
 	if err != nil {
 		t.Fatalf("err while getting all entries: %v", err)
